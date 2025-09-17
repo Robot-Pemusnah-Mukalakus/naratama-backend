@@ -6,10 +6,226 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  phoneNumber      String    @unique
+  email            String    @unique
+  password         String?   
+  role             UserRole  @default(USER)
+  joinDate         DateTime  @default(now())
+  isActive         Boolean   @default(true)
+  lastLogin        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  roomBookings     RoomBooking[]
+  bookLoans        BookLoan[]
+  membership       Membership?
+
+  @@map("users")
+}
+
+model Membership {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String    @db.ObjectId @unique
+  membershipNumber String   @unique
+  startDate      DateTime  @default(now())
+  endDate        DateTime
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@map("memberships")
+}
+
+model Book {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  isbn              String    @unique
+  coverImage        String?
+  title             String
+  author            String
+  publisher         String
+  publishYear       Int
+  category          String
+  genre             String[]
+  language          String    @default("Indonesian")
+  pages             Int
+  description       String?
+  quantity          Int       @default(1)
+  availableQuantity Int
+  location          String
+  isActive          Boolean   @default(true)
+  addedDate         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  bookLoans         BookLoan[]
+
+  @@map("books")
+}
+
+model Room {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  roomNumber  String    @unique
+  name        String
+  type        RoomType
+  capacity    Int
+  hourlyRate  Float
+  amenities   String[]
+  isAvailable Boolean   @default(true)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  bookings    RoomBooking[]
+
+  @@map("rooms")
+}
+
+model RoomBooking {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String        @db.ObjectId
+  roomId         String        @db.ObjectId
+  bookingDate    DateTime
+  startTime      DateTime
+  endTime        DateTime
+  duration       Float
+  totalCost      Float
+  status         BookingStatus @default(PENDING)
+  paymentStatus  PaymentStatus @default(UNPAID)
+  purpose        String?
+  specialRequests String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  user           User          @relation(fields: [userId], references: [id])
+  room           Room          @relation(fields: [roomId], references: [id])
+
+  @@map("roomBookings")
+}
+
+model BookLoan {
+  id                    String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String     @db.ObjectId
+  bookId                String     @db.ObjectId
+  loanDate              DateTime   @default(now())
+  dueDate               DateTime
+  returnDate            DateTime?
+  status                LoanStatus @default(ACTIVE)
+  fine                  Float      @default(0)
+  renewalCount          Int        @default(0)
+  maxRenewals           Int        @default(2)
+  notes                 String?
+  lateFeesPerDay        Float      @default(5000)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  // Relations
+  user                  User       @relation(fields: [userId], references: [id])
+  book                  Book       @relation(fields: [bookId], references: [id])
+
+  @@map("bookLoans")
+}
+
+model Announcement {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  content        String
+  type           AnnouncementType @default(GENERAL)
+  priority       Priority         @default(MEDIUM)
+  isActive       Boolean          @default(true)
+  publishDate    DateTime         @default(now())
+  expiryDate     DateTime?
+  targetAudience Audience         @default(ALL)
+  attachments    String[]
+  createdBy      String
+  viewCount      Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@map("announcements")
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+  STAFF
+
+  @@map("userRole")
+}
+
+enum RoomType {
+  SMALL_DISCUSSION
+  LARGE_MEETING
+
+  @@map("roomType")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+
+  @@map("bookingStatus")
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+
+  @@map("paymentStatus")
+}
+
+enum LoanStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+  LOST
+
+  @@map("loanStatus")
+}
+
+enum AnnouncementType {
+  NEW_BOOKS
+  EVENT
+  MAINTENANCE
+  POLICY
+  GENERAL
+
+  @@map("announcementType")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+
+  @@map("priority")
+}
+
+enum Audience {
+  ALL
+  MEMBERS_ONLY
+  STAFF
+
+  @@map("audience")
 }
