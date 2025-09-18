@@ -11,7 +11,7 @@ Development README — how to clone, configure environment variables, and run th
 ## Clone the repository
 
 ```powershell
-git clone https://github.com/runsdev/naratama-backend.git
+git clone https://github.com/Robot-Pemusnah-Mukalakus/naratama-backend.git
 cd naratama-backend
 ```
 
