@@ -2,6 +2,16 @@
 
 Development README — how to clone, configure environment variables, and run the development server.
 
+## The Teams:
+
+| Member                 | NIM                |
+| ---------------------- | ------------------ |
+| @runsdev               | 23/514148/TK/56466 |
+| @SentientCorn          |                    |
+| @LaluKevinProudyHandal |                    |
+| @rafeyyy1              |                    |
+| @Dapreall              |                    |
+
 ## Prerequisites
 
 - Node.js 18+ (recommended)
