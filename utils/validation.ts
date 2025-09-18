@@ -30,3 +30,9 @@ export const name = z
   .max(100, "Name too long");
 
 export const email = z.email("Invalid email format");
+export const passwordReq = z
+  .string()
+  .regex(
+    passwordRequirement,
+    "Password must be at least 8 characters, include uppercase, lowercase, number, and special character"
+  );
