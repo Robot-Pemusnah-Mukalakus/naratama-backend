@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import authRoutes from "./routes/auth.js";
 
 dotenv.config();
 
@@ -19,6 +20,8 @@ app.use(
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+
+app.use("/api/auth", authRoutes);
 
 app.use("/", (req, res) => {
   res.json({
