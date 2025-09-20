@@ -172,66 +172,93 @@ router.get("/phone/:phoneNumber", checkStaff, async (req, res) => {
   }
 });
 
+// GET /api/users/email/:email
+router.get("/email/:email", checkStaff, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: req.params.email },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
 // POST /api/users
-// router.post("/", checkStaff, async (req, res) => {
-//   try {
-//     const { name, phoneNumber, email } = req.body;
+router.post("/", checkStaff, async (req, res) => {
+  try {
+    const { name, phoneNumber, email } = req.body;
 
-//     // validate required fields
-//     if (!name || !phoneNumber || !email) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Name, phone number, and email are required",
-//       });
-//     }
+    // validate required fields
+    if (!name || !phoneNumber || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, phone number, and email are required",
+      });
+    }
 
-//     // check if phone number already exists
-//     const existingUser = await prisma.user.findUnique({
-//       where: { phoneNumber },
-//     });
+    // check if phone number already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { phoneNumber },
+    });
 
-//     if (existingUser) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Phone number already exists",
-//       });
-//     }
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number already exists",
+      });
+    }
 
-//     const userData: any = {
-//       name,
-//       phoneNumber,
-//       email: email || undefined,
-//     };
+    const userData: any = {
+      name,
+      phoneNumber,
+      email: email || undefined,
+    };
 
-//     const user = await prisma.user.create({
-//       data: userData,
-//     });
+    const user = await prisma.user.create({
+      data: userData,
+    });
 
-//     res.status(201).json({
-//       success: true,
-//       message: "User created successfully",
-//       data: user,
-//     });
-//   } catch (error) {
-//     if (error instanceof Error && error.message.includes("Unique constraint")) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Phone number already exists",
-//       });
-//     }
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+      data: user,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Unique constraint")) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number already exists",
+      });
+    }
 
-//     res.status(400).json({
-//       success: false,
-//       message: "Failed to create user",
-//       error: error instanceof Error ? error.message : "Unknown error",
-//     });
-//   }
-// });
+    res.status(400).json({
+      success: false,
+      message: "Failed to create user",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
 
 // PUT /api/users/:id
 router.put("/:id", checkAuth, async (req, res) => {
   try {
-    const { name, email, isMember } = req.body;
+    const { name, email } = req.body;
     const requestingUser = req.user!;
     const targetUserId = req.params.id;
 
