@@ -1,16 +1,22 @@
-import express from "express";
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Prisma } from "@prisma/client";
 import bcrypt from "bcrypt";
+import express from "express";
+
 import passport from "../config/passport.js";
 import prisma from "../lib/prisma.js";
 import { checkAuth } from "../middleware/auth.js";
+import { SessionUser } from "../middleware/auth.js";
 import { validateSchema } from "../middleware/validation.js";
 import {
+  ChangePasswordSchema,
   LoginSchema,
   RegisterSchema,
-  ChangePasswordSchema,
   SetPasswordSchema,
 } from "../validations/index.js";
-import { SessionUser } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -18,19 +24,19 @@ const router = express.Router();
 router.post("/login", validateSchema(LoginSchema), (req, res, next) => {
   passport.authenticate(
     "local",
-    (err: any, user: SessionUser | null, info: any) => {
+    (err: any, user: null | SessionUser, info: any) => {
       if (err) {
         return res.status(500).json({
-          success: false,
-          message: "Authentication error",
           error: err.message,
+          message: "Authentication error",
+          success: false,
         });
       }
 
       if (!user) {
         return res.status(401).json({
+          message: info?.message ?? "Authentication failed",
           success: false,
-          message: info?.message || "Authentication failed",
         });
       }
 
@@ -38,23 +44,23 @@ router.post("/login", validateSchema(LoginSchema), (req, res, next) => {
       req.logIn(user, (err) => {
         if (err) {
           return res.status(500).json({
-            success: false,
-            message: "Login error",
             error: err.message,
+            message: "Login error",
+            success: false,
           });
         }
 
         return res.json({
-          success: true,
           message: "Login successful",
+          success: true,
           user: {
+            email: user.email,
             id: user.id,
+            lastlogin: new Date(user.lastLogin ?? Date.now()),
+            membership: user.membership,
             name: user.name,
             phoneNumber: user.phoneNumber,
-            email: user.email,
             role: user.role,
-            lastlogin: user.lastLogin,
-            membership: user.membership,
           },
         });
       });
@@ -65,19 +71,20 @@ router.post("/login", validateSchema(LoginSchema), (req, res, next) => {
 // POST /api/auth/register
 router.post("/register", validateSchema(RegisterSchema), async (req, res) => {
   try {
-    const { name, phoneNumber, email, password } = req.body;
+    const { email, name, password, phoneNumber } =
+      req.body as Prisma.UserCreateInput;
 
     // if user already exists
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ phoneNumber }, email ? { email } : {}].filter(Boolean),
+        OR: [{ email, phoneNumber }].filter(Boolean),
       },
     });
 
     if (existingUser) {
       return res.status(409).json({
-        success: false,
         message: "User with this phone number or email already exists",
+        success: false,
       });
     }
 
@@ -88,11 +95,11 @@ router.post("/register", validateSchema(RegisterSchema), async (req, res) => {
     // create user
     const newUser = await prisma.user.create({
       data: {
-        name,
-        phoneNumber,
         email: email,
-        password: hashedPassword,
         isActive: true,
+        name,
+        password: hashedPassword,
+        phoneNumber,
       },
       include: {
         membership: true,
@@ -101,40 +108,39 @@ router.post("/register", validateSchema(RegisterSchema), async (req, res) => {
 
     const now = new Date();
 
-    // SessionUser for login
     const user: Express.User = {
-      id: newUser.id,
-      name: newUser.name,
-      phoneNumber: newUser.phoneNumber,
       email: newUser.email,
-      role: newUser.role,
+      id: newUser.id,
       isActive: newUser.isActive,
       lastLogin: now,
       membership: newUser.membership,
+      name: newUser.name,
+      phoneNumber: newUser.phoneNumber,
+      role: newUser.role,
     };
 
     // Auto-login after registration
     req.logIn(user, (err) => {
       if (err) {
         return res.status(201).json({
-          success: true,
           message: "User registered successfully, but auto-login failed",
+          success: true,
           user,
         });
       }
 
       return res.status(201).json({
-        success: true,
         message: "User registered and logged in successfully",
+        success: true,
         user,
       });
     });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({
-      success: false,
-      message: "Registration failed",
       error: process.env.NODE_ENV === "development" ? error : undefined,
+      message: "Registration failed",
+      success: false,
     });
   }
 });
@@ -144,25 +150,25 @@ router.post("/logout", checkAuth, (req, res) => {
   req.logout((err) => {
     if (err) {
       return res.status(500).json({
-        success: false,
-        message: "Logout error",
         error: err.message,
+        message: "Logout error",
+        success: false,
       });
     }
 
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({
-          success: false,
-          message: "Session destruction error",
           error: err.message,
+          message: "Session destruction error",
+          success: false,
         });
       }
 
       res.clearCookie("connect.sid"); // Clear session cookie
       res.json({
-        success: true,
         message: "Logout successful",
+        success: true,
       });
     });
   });
@@ -183,17 +189,20 @@ router.post(
   validateSchema(ChangePasswordSchema),
   async (req, res) => {
     try {
-      const { currentPassword, newPassword } = req.body;
+      const { currentPassword, newPassword } = req.body as {
+        currentPassword: string;
+        newPassword: string;
+      };
 
       // Get user with password
       const user = await prisma.user.findUnique({
-        where: { id: req.user!.id },
+        where: { id: req.user?.id },
       });
 
-      if (!user || !user.password) {
+      if (!user?.password) {
         return res.status(404).json({
-          success: false,
           message: "User not found or password not set",
+          success: false,
         });
       }
 
@@ -204,8 +213,8 @@ router.post(
       );
       if (!isCurrentPasswordValid) {
         return res.status(401).json({
-          success: false,
           message: "Current password is incorrect",
+          success: false,
         });
       }
 
@@ -215,20 +224,20 @@ router.post(
 
       // Update password
       await prisma.user.update({
-        where: { id: user.id },
         data: { password: hashedNewPassword },
+        where: { id: user.id },
       });
 
       res.json({
-        success: true,
         message: "Password changed successfully",
+        success: true,
       });
     } catch (error) {
       console.error("Change password error:", error);
       res.status(500).json({
-        success: false,
-        message: "Failed to change password",
         error: process.env.NODE_ENV === "development" ? error : undefined,
+        message: "Failed to change password",
+        success: false,
       });
     }
   }
@@ -240,7 +249,7 @@ router.post(
   validateSchema(SetPasswordSchema),
   async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password } = req.body as Prisma.UserCreateInput;
 
       // Find user
       const user = await prisma.user.findUnique({
@@ -249,38 +258,39 @@ router.post(
 
       if (!user) {
         return res.status(404).json({
-          success: false,
           message: "User not found",
+          success: false,
         });
       }
 
       if (user.password) {
         return res.status(400).json({
-          success: false,
           message: "Password already set. Use change password instead.",
+          success: false,
         });
       }
 
       // Hash password
       const saltRounds = 12;
+
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
       // Update user with password
       await prisma.user.update({
-        where: { id: user.id },
         data: { password: hashedPassword },
+        where: { id: user.id },
       });
 
       res.json({
-        success: true,
         message: "Password set successfully. You can now login.",
+        success: true,
       });
     } catch (error) {
       console.error("Set password error:", error);
       res.status(500).json({
-        success: false,
-        message: "Failed to set password",
         error: process.env.NODE_ENV === "development" ? error : undefined,
+        message: "Failed to set password",
+        success: false,
       });
     }
   }

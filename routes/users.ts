@@ -1,21 +1,22 @@
+import { Prisma, UserRole } from "@prisma/client";
 import express from "express";
+
 import prisma from "../lib/prisma.js";
-import { UserRole } from "@prisma/client";
+import { checkAdmin, checkAuth, checkStaff } from "../middleware/auth.js";
 import { generateTimestampCode } from "../utils/random.js";
-import { checkAuth, checkStaff, checkAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // Helper function to generate membership number
-async function generateMembershipNumber(): Promise<string> {
+function generateMembershipNumber(): string {
   return `mbr-${generateTimestampCode()}`;
 }
 
 // GET /api/users
 router.get("/", checkStaff, async (req, res) => {
   try {
-    const { isMember, isActive } = req.query;
-    const where: any = {};
+    const { isActive, isMember } = req.query;
+    const where: Prisma.UserWhereInput = {};
 
     if (isActive !== undefined) where.isActive = isActive === "true";
 
@@ -24,10 +25,10 @@ router.get("/", checkStaff, async (req, res) => {
       const isMemberBool = isMember === "true";
       if (isMemberBool) {
         where.membership = {
-          isActive: true,
           endDate: {
             gte: new Date(), // only active memberships
           },
+          isActive: true,
         };
       } else {
         where.OR = [
@@ -42,23 +43,23 @@ router.get("/", checkStaff, async (req, res) => {
     }
 
     const users = await prisma.user.findMany({
-      where,
       include: {
         membership: true,
       },
       orderBy: { createdAt: "desc" },
+      where,
     });
 
     res.json({
-      success: true,
       count: users.length,
       data: users,
+      success: true,
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: "Failed to fetch users",
       error: error instanceof Error ? error.message : "Unknown error",
+      message: "Failed to fetch users",
+      success: false,
     });
   }
 });
@@ -67,16 +68,16 @@ router.get("/", checkStaff, async (req, res) => {
 router.get("/me", checkAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.user!.id },
       include: {
         membership: true,
       },
+      where: { id: req.user!.id },
     });
 
     if (!user) {
       return res.status(404).json({
-        success: false,
         message: "User not found",
+        success: false,
       });
     }
 
@@ -84,14 +85,14 @@ router.get("/me", checkAuth, async (req, res) => {
     const { password, ...userWithoutPassword } = user;
 
     res.json({
-      success: true,
       data: userWithoutPassword,
+      success: true,
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: "Failed to fetch user profile",
       error: error instanceof Error ? error.message : "Unknown error",
+      message: "Failed to fetch user profile",
+      success: false,
     });
   }
 });
@@ -110,22 +111,22 @@ router.get("/:id", checkAuth, async (req, res) => {
 
     if (!isOwnProfile && !isStaffOrAdmin) {
       return res.status(403).json({
-        success: false,
         message: "You can only view your own profile or must be staff/admin",
+        success: false,
       });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: req.params.id },
       include: {
         membership: true,
       },
+      where: { id: req.params.id },
     });
 
     if (!user) {
       return res.status(404).json({
-        success: false,
         message: "User not found",
+        success: false,
       });
     }
 
@@ -133,14 +134,14 @@ router.get("/:id", checkAuth, async (req, res) => {
     const { password, ...userWithoutPassword } = user;
 
     res.json({
-      success: true,
       data: userWithoutPassword,
+      success: true,
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: "Failed to fetch user",
       error: error instanceof Error ? error.message : "Unknown error",
+      message: "Failed to fetch user",
+      success: false,
     });
   }
 });
@@ -154,111 +155,84 @@ router.get("/phone/:phoneNumber", checkStaff, async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        success: false,
         message: "User not found",
+        success: false,
       });
     }
 
     res.json({
-      success: true,
       data: user,
+      success: true,
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: "Failed to fetch user",
       error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-// GET /api/users/email/:email
-router.get("/email/:email", checkStaff, async (req, res) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { email: req.params.email },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    res.json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
       message: "Failed to fetch user",
-      error: error instanceof Error ? error.message : "Unknown error",
+      success: false,
     });
   }
 });
 
 // POST /api/users
-router.post("/", checkStaff, async (req, res) => {
-  try {
-    const { name, phoneNumber, email } = req.body;
+// router.post("/", checkStaff, async (req, res) => {
+//   try {
+//     const { name, phoneNumber, email } = req.body;
 
-    // validate required fields
-    if (!name || !phoneNumber || !email) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, phone number, and email are required",
-      });
-    }
+//     // validate required fields
+//     if (!name || !phoneNumber || !email) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Name, phone number, and email are required",
+//       });
+//     }
 
-    // check if phone number already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { phoneNumber },
-    });
+//     // check if phone number already exists
+//     const existingUser = await prisma.user.findUnique({
+//       where: { phoneNumber },
+//     });
 
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone number already exists",
-      });
-    }
+//     if (existingUser) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Phone number already exists",
+//       });
+//     }
 
-    const userData: any = {
-      name,
-      phoneNumber,
-      email: email || undefined,
-    };
+//     const userData: any = {
+//       name,
+//       phoneNumber,
+//       email: email || undefined,
+//     };
 
-    const user = await prisma.user.create({
-      data: userData,
-    });
+//     const user = await prisma.user.create({
+//       data: userData,
+//     });
 
-    res.status(201).json({
-      success: true,
-      message: "User created successfully",
-      data: user,
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("Unique constraint")) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone number already exists",
-      });
-    }
+//     res.status(201).json({
+//       success: true,
+//       message: "User created successfully",
+//       data: user,
+//     });
+//   } catch (error) {
+//     if (error instanceof Error && error.message.includes("Unique constraint")) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Phone number already exists",
+//       });
+//     }
 
-    res.status(400).json({
-      success: false,
-      message: "Failed to create user",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
+//     res.status(400).json({
+//       success: false,
+//       message: "Failed to create user",
+//       error: error instanceof Error ? error.message : "Unknown error",
+//     });
+//   }
+// });
 
 // PUT /api/users/:id
 router.put("/:id", checkAuth, async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { email, isMember, name } = req.body;
     const requestingUser = req.user!;
     const targetUserId = req.params.id;
 
@@ -270,8 +244,8 @@ router.put("/:id", checkAuth, async (req, res) => {
 
     if (!isOwnProfile && !isStaffOrAdmin) {
       return res.status(403).json({
-        success: false,
         message: "You can only update your own profile or must be staff/admin",
+        success: false,
       });
     }
 
@@ -280,14 +254,14 @@ router.put("/:id", checkAuth, async (req, res) => {
     if (email !== undefined) updateData.email = email;
 
     const user = await prisma.user.update({
-      where: { id: req.params.id },
       data: updateData,
+      where: { id: req.params.id },
     });
 
     res.json({
-      success: true,
-      message: "User updated successfully",
       data: user,
+      message: "User updated successfully",
+      success: true,
     });
   } catch (error) {
     if (
@@ -295,15 +269,15 @@ router.put("/:id", checkAuth, async (req, res) => {
       error.message.includes("Record to update not found")
     ) {
       return res.status(404).json({
-        success: false,
         message: "User not found",
+        success: false,
       });
     }
 
     res.status(400).json({
-      success: false,
-      message: "Failed to update user",
       error: error instanceof Error ? error.message : "Unknown error",
+      message: "Failed to update user",
+      success: false,
     });
   }
 });
@@ -312,16 +286,16 @@ router.put("/:id", checkAuth, async (req, res) => {
 router.put("/:id/membership", checkStaff, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.params.id },
       include: {
         membership: true,
       },
+      where: { id: req.params.id },
     });
 
     if (!user) {
       return res.status(404).json({
-        success: false,
         message: "User not found",
+        success: false,
       });
     }
 
@@ -343,10 +317,10 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
       );
 
       membershipData = await prisma.membership.update({
-        where: { id: user.membership.id },
         data: {
           endDate: newEndDate,
         },
+        where: { id: user.membership.id },
       });
     } else {
       // Create new membership or reactivate expired one
@@ -356,22 +330,22 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
       if (user.membership) {
         // Reactivate existing membership
         membershipData = await prisma.membership.update({
-          where: { id: user.membership.id },
           data: {
-            startDate: now,
             endDate: thirtyDaysFromNow,
             isActive: true,
+            startDate: now,
           },
+          where: { id: user.membership.id },
         });
       } else {
         // Create new membership
         membershipData = await prisma.membership.create({
           data: {
-            userId: user.id,
-            membershipNumber,
-            startDate: now,
             endDate: thirtyDaysFromNow,
             isActive: true,
+            membershipNumber,
+            startDate: now,
+            userId: user.id,
           },
         });
       }
@@ -379,27 +353,27 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
 
     // Get updated user with membership
     const updatedUser = await prisma.user.findUnique({
-      where: { id: req.params.id },
       include: {
         membership: true,
       },
+      where: { id: req.params.id },
     });
 
     res.json({
-      success: true,
+      data: updatedUser,
       message:
         user.membership &&
         user.membership.isActive &&
         user.membership.endDate > now
           ? "Membership extended by 30 days"
           : "Membership activated for 30 days",
-      data: updatedUser,
+      success: true,
     });
   } catch (error) {
     res.status(400).json({
-      success: false,
-      message: "Failed to update membership status",
       error: error instanceof Error ? error.message : "Unknown error",
+      message: "Failed to update membership status",
+      success: false,
     });
   }
 });
@@ -408,53 +382,53 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
 router.delete("/:id/membership", checkStaff, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: req.params.id },
       include: {
         membership: true,
       },
+      where: { id: req.params.id },
     });
 
     if (!user) {
       return res.status(404).json({
-        success: false,
         message: "User not found",
+        success: false,
       });
     }
 
     if (!user.membership) {
       return res.status(400).json({
-        success: false,
         message: "User does not have an active membership",
+        success: false,
       });
     }
 
     // Deactivate membership
     await prisma.membership.update({
-      where: { id: user.membership.id },
       data: {
-        isActive: false,
         endDate: new Date(), // Set end date to now
+        isActive: false,
       },
+      where: { id: user.membership.id },
     });
 
     // Get updated user
     const updatedUser = await prisma.user.findUnique({
-      where: { id: req.params.id },
       include: {
         membership: true,
       },
+      where: { id: req.params.id },
     });
 
     res.json({
-      success: true,
-      message: "Membership deactivated successfully",
       data: updatedUser,
+      message: "Membership deactivated successfully",
+      success: true,
     });
   } catch (error) {
     res.status(400).json({
-      success: false,
-      message: "Failed to deactivate membership",
       error: error instanceof Error ? error.message : "Unknown error",
+      message: "Failed to deactivate membership",
+      success: false,
     });
   }
 });
@@ -463,13 +437,13 @@ router.delete("/:id/membership", checkStaff, async (req, res) => {
 router.delete("/:id", checkAdmin, async (req, res) => {
   try {
     const user = await prisma.user.update({
-      where: { id: req.params.id },
       data: { isActive: false },
+      where: { id: req.params.id },
     });
 
     res.json({
-      success: true,
       message: "User deactivated successfully",
+      success: true,
     });
   } catch (error) {
     if (
@@ -477,15 +451,15 @@ router.delete("/:id", checkAdmin, async (req, res) => {
       error.message.includes("Record to update not found")
     ) {
       return res.status(404).json({
-        success: false,
         message: "User not found",
+        success: false,
       });
     }
 
     res.status(500).json({
-      success: false,
-      message: "Failed to deactivate user",
       error: error instanceof Error ? error.message : "Unknown error",
+      message: "Failed to deactivate user",
+      success: false,
     });
   }
 });

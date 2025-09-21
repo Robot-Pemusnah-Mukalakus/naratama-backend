@@ -1,31 +1,31 @@
-import { Request, Response, NextFunction } from "express";
 import { UserRole } from "@prisma/client";
 import { User as UserDBType } from "@prisma/client";
 import { Membership } from "@prisma/client";
+import { NextFunction, Request, Response } from "express";
 
-// User interface
+// User interface for sessions
 export type SessionUser = Omit<
   UserDBType,
-  "password" | "joinDate" | "createdAt" | "updatedAt"
+  "createdAt" | "joinDate" | "password" | "updatedAt"
 > & {
   membership: Membership | null;
 };
 
-
-declare global {
-  namespace Express {
-    interface User extends SessionUser {}
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: SessionUser;
   }
 }
 
-// Auth Check
+// Check if user is authenticated
 export const checkAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (req.isAuthenticated && req.isAuthenticated()) {
-    return next();
+  if (req.isAuthenticated()) {
+    next();
+    return;
   }
   return res.status(401).json({
-    success: false,
     message: "Authentication required",
+    success: false,
   });
 };
 
@@ -39,40 +39,40 @@ export const optionalAuth = (
   next();
 };
 
-// Staff check
+// Check if user is staff or admin
 export const checkStaff = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+  if (!req.isAuthenticated()) {
     return res.status(401).json({
-      success: false,
       message: "Authentication required",
+      success: false,
     });
   }
 
   const user = req.user;
-  if (!user || (user.role !== UserRole.STAFF && user.role !== UserRole.ADMIN)) {
+  if (user.role !== UserRole.STAFF && user.role !== UserRole.ADMIN) {
     return res.status(403).json({
-      success: false,
       message: "Staff access required",
+      success: false,
     });
   }
 
   next();
 };
 
-// Admin check
+// Check if user is admin
 export const checkAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+  if (!req.isAuthenticated()) {
     return res.status(401).json({
-      success: false,
       message: "Authentication required",
+      success: false,
     });
   }
 
   const user = req.user;
-  if (!user || user.role !== UserRole.ADMIN) {
+  if (user.role !== UserRole.ADMIN) {
     return res.status(403).json({
-      success: false,
       message: "Admin access required",
+      success: false,
     });
   }
 
