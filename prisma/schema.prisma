@@ -18,7 +18,7 @@ model User {
   name             String
   phoneNumber      String    @unique
   email            String    @unique
-  password         String?   
+  password         String   
   role             UserRole  @default(USER)
   joinDate         DateTime  @default(now())
   isActive         Boolean   @default(true)

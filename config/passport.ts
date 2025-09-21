@@ -1,67 +1,74 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
+import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import bcrypt from "bcrypt";
+
 import prisma from "../lib/prisma.js";
-import { UserRole } from "@prisma/client";
 import { SessionUser } from "../middleware/auth.js";
 
 // Configure Local Strategy
 passport.use(
   new LocalStrategy(
     {
-      usernameField: "email",
       passwordField: "password",
+      usernameField: "email",
     },
     async (email: string, password: string, done) => {
       try {
         const user = await prisma.user.findUnique({
-          where: { email },
           include: { membership: true },
+          where: { email },
         });
 
         if (!user) {
-          return done(null, false, {
+          done(null, false, {
             message: "Invalid phone number or password",
           });
+          return;
         }
 
         if (!user.password) {
-          return done(null, false, {
+          done(null, false, {
             message: "Account not activated. Please set a password first.",
           });
+          return;
         }
 
         if (!user.isActive) {
-          return done(null, false, { message: "Account is deactivated" });
+          done(null, false, { message: "Account is deactivated" });
+          return;
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-          return done(null, false, {
+          done(null, false, {
             message: "Invalid email or password",
           });
+          return;
         }
 
         await prisma.user.update({
-          where: { id: user.id },
           data: { lastLogin: new Date() },
+          where: { id: user.id },
         });
 
         const sessionUser: SessionUser = {
-          id: user.id,
-          name: user.name,
-          phoneNumber: user.phoneNumber,
           email: user.email,
-          role: user.role,
+          id: user.id,
           isActive: user.isActive,
           lastLogin: new Date(),
           membership: user.membership,
+          name: user.name,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
         };
 
-        return done(null, sessionUser);
+        done(null, sessionUser);
+        return;
       } catch (error) {
         console.error("Authentication error:", error);
-        return done(error);
+        done(error);
+        return;
       }
     }
   )
@@ -69,39 +76,33 @@ passport.use(
 
 // serialize user for session storage
 passport.serializeUser((user: Express.User, done) => {
-  done(null, user.id);
+  done(null, (user as SessionUser).id);
 });
 
 // deserialize user from session
 passport.deserializeUser(async (id: string, done) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { id },
       include: {
         membership: true,
       },
+      where: { id },
     });
 
     if (!user || !user.isActive) {
-      return done(null, false);
+      done(null, false);
+      return;
     }
 
-    // Membership check
-    const now = new Date();
-    const hasActiveMembership =
-      user.membership &&
-      user.membership.isActive &&
-      user.membership.endDate > now;
-
     const sessionUser: SessionUser = {
+      email: user.email,
       id: user.id,
+      isActive: user.isActive,
+      lastLogin: new Date(user.lastLogin ?? Date.now()),
+      membership: user.membership,
       name: user.name,
       phoneNumber: user.phoneNumber,
-      email: user.email,
       role: user.role,
-      isActive: user.isActive,
-      lastLogin: user.lastLogin || null,
-      membership: user.membership,
     };
 
     done(null, sessionUser);

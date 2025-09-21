@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { phoneNumber, name, email, passwordReq } from "../utils/validation.js";
+
+import { email, name, passwordReq, phoneNumber } from "../utils/validation.js";
 
 // ============================
 // ENUMS
@@ -14,10 +15,10 @@ export const LoginSchema = z.object({
 });
 
 export const RegisterSchema = z.object({
-  name: name,
-  phoneNumber: phoneNumber,
   email: email,
+  name: name,
   password: passwordReq,
+  phoneNumber: phoneNumber,
 });
 
 export const ChangePasswordSchema = z.object({
@@ -30,10 +31,10 @@ export const SetPasswordSchema = z.object({
   password: passwordReq,
 });
 
+export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 // ============================
 // EXPORT TYPES
 // ============================
 export type Login = z.infer<typeof LoginSchema>;
 export type Register = z.infer<typeof RegisterSchema>;
-export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 export type SetPassword = z.infer<typeof SetPasswordSchema>;
