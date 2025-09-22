@@ -31,10 +31,10 @@ export const SetPasswordSchema = z.object({
   password: passwordReq,
 });
 
-export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 // ============================
 // EXPORT TYPES
 // ============================
+export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 export type Login = z.infer<typeof LoginSchema>;
 export type Register = z.infer<typeof RegisterSchema>;
 export type SetPassword = z.infer<typeof SetPasswordSchema>;

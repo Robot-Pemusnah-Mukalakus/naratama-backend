@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { email, name, phoneNumber } from "../utils/validation.js";
+import { email, name, passwordReq, phoneNumber } from "../utils/validation.js";
 
 // ============================
 // ENUMS
@@ -13,10 +13,7 @@ export const UserRoleSchema = z.enum(["USER", "ADMIN", "STAFF"]);
 export const CreateUserSchema = z.object({
   email: email,
   name: name,
-  password: z
-    .string()
-    .min(6, "Hashed Password must be at least 6 characters")
-    .optional(),
+  password: passwordReq.optional(),
   phoneNumber: phoneNumber,
   role: UserRoleSchema.optional(),
 });

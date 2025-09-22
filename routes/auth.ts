@@ -21,6 +21,7 @@ import {
 const router = express.Router();
 
 // POST /api/auth/login
+
 router.post("/login", validateSchema(LoginSchema), (req, res, next) => {
   passport.authenticate(
     "local",

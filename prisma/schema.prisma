@@ -22,6 +22,7 @@ model User {
   role             UserRole  @default(USER)
   joinDate         DateTime  @default(now())
   isActive         Boolean   @default(true)
+  isOauthUser      Boolean   @default(false)
   lastLogin        DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -30,8 +31,22 @@ model User {
   roomBookings     RoomBooking[]
   bookLoans        BookLoan[]
   membership       Membership?
+  googleUser       GoogleUser?
 
   @@map("users")
+}
+
+model GoogleUser {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  googleId  String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId @unique
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("googleUsers")
 }
 
 model Membership {
