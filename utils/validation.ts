@@ -9,7 +9,7 @@ export const isbnPattern =
 
 // pass: 8 characters, at least 1 uppercase, 1 lowercase, 1 number and 1 special character
 export const passwordRequirement =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&_])[A-Za-z\d@$!%*#?&_]{8,}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
 
 // membership code pattern: mbr-XXXX (X: uppercase letter or digit)
 export const membershipCode = /^mbr-[A-Z0-9]+$/;
@@ -18,14 +18,8 @@ export const phoneNumber = z
   .string()
   .regex(
     phoneNumberPattern,
-    "Invalid phone number format, use +<countrycode>..."
+    "Invalid phone number format, use +<countrycode><number> (e.g., +1234567890)"
   );
-
-export const membershipNumber = z
-  .string()
-  .regex(membershipCode, "Invalid membership number format, use mbr-XXXX");
-
-export const isbn = z.string().regex(isbnPattern, "Invalid ISBN format");
 
 export const name = z
   .string()
@@ -34,6 +28,12 @@ export const name = z
 
 export const email = z.email("Invalid email format");
 
+export const membershipNumber = z
+  .string()
+  .regex(membershipCode, "Invalid membership number format, use mbr-XXXX");
+
+export const isbn = z.string().regex(isbnPattern, "Invalid ISBN format");
+
 export const passwordReq = z
   .string()
   .regex(
@@ -41,19 +41,17 @@ export const passwordReq = z
     "Password must be at least 8 characters, include uppercase, lowercase, number and special character"
   );
 
-// MongoDB ObjectId validation
 export const mongoId = z
   .string()
   .regex(/^[0-9a-fA-F]{24}$/, "Invalid ID format");
 
-// Date validation helpers
 export const dateInFuture = z
   .date()
   .refine((date) => date > new Date(), "Date must be in the future");
 
-export const dateInPast = z
+export const dateInNowOrPast = z
   .date()
-  .refine((date) => date < new Date(), "Date must be in the past");
+  .refine((date) => date <= new Date(), "Date must be now or in the past");
 
 // Custom transformations
 export const stringToNumber = z.string().transform((val) => {
@@ -104,14 +102,6 @@ export const createPaginationQuery = (page = 1, limit = 20) => ({
   skip: (page - 1) * limit,
   take: limit,
 });
-
-export const formatValidationErrors = (errors: z.core.$ZodIssue[]) => {
-  return errors.map((err) => ({
-    code: err.code,
-    field: err.path.join("."),
-    message: err.message,
-  }));
-};
 
 // Search and filter helpers
 export const createSearchFilter = (searchTerm: string, fields: string[]) => {
