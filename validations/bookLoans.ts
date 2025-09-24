@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { mongoId } from "../utils/validation.js";
+
 // ============================
 // ENUMS
 // ============================
@@ -13,11 +15,19 @@ export const LoanStatusSchema = z.enum([
 // ============================
 // USER SCHEMAS
 // ============================
+export const GetBookLoansSchema = z.object({
+  bookId: mongoId.optional(),
+  limit: z.number().min(1).max(100).default(20).optional(),
+  page: z.number().min(1).default(1).optional(),
+  status: LoanStatusSchema.optional(),
+  userId: mongoId.optional(),
+});
+
 export const CreateBookLoanSchema = z.object({
-  bookId: z.string().min(1, "Book ID is required"),
+  bookId: mongoId,
   dueDate: z.iso.datetime().or(z.date()),
   notes: z.string().max(300, "Notes too long").optional(),
-  userId: z.string().min(1, "User ID is required"),
+  userId: mongoId,
 });
 
 export const UpdateBookLoanSchema = z.object({
@@ -29,7 +39,7 @@ export const UpdateBookLoanSchema = z.object({
 });
 
 export const RenewBookLoanSchema = z.object({
-  loanId: z.string().min(1, "Loan ID is required"),
+  loanId: mongoId,
 });
 
 // ============================
