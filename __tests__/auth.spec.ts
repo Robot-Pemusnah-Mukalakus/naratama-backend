@@ -150,10 +150,14 @@ describe("Auth Routes", () => {
   describe("POST /auth/login", () => {
     it("should login successfully with valid credentials", async () => {
       mockPassport.authenticate.mockImplementation((strategy, callback) => {
-        // return (req: any, res: any, next: any) => {
-        //   callback(null, mockSessionUser, null);
-        // };
-        return;
+        const cb = callback as (
+          err: unknown,
+          user: unknown,
+          info?: unknown
+        ) => void;
+        return (req: any, res: any, next: any) => {
+          cb(null, mockSessionUser, null);
+        };
       });
 
       const response = await request(app).post("/auth/login").send({
@@ -161,6 +165,10 @@ describe("Auth Routes", () => {
         password: "password123",
       });
 
+      expect(mockPassport.authenticate).toHaveBeenCalledWith(
+        "local",
+        expect.any(Function)
+      );
       expect(response.status).toBe(200);
       expect(response.body).toEqual({
         message: "Login successful",
@@ -179,10 +187,14 @@ describe("Auth Routes", () => {
 
     it("should fail login with invalid credentials", async () => {
       mockPassport.authenticate.mockImplementation((strategy, callback) => {
-        // return (req: any, res: any, next: any) => {
-        //   callback(null, null, { message: "Invalid email or password" });
-        // };
-        return;
+        const cb = callback as (
+          err: unknown,
+          user: unknown,
+          info?: unknown
+        ) => void;
+        return (req: any, res: any, next: any) => {
+          cb(null, null, { message: "Invalid email or password" });
+        };
       });
 
       const response = await request(app).post("/auth/login").send({
@@ -190,6 +202,10 @@ describe("Auth Routes", () => {
         password: "wrongpassword",
       });
 
+      expect(mockPassport.authenticate).toHaveBeenCalledWith(
+        "local",
+        expect.any(Function)
+      );
       expect(response.status).toBe(401);
       expect(response.body).toEqual({
         message: "Invalid email or password",
@@ -199,10 +215,14 @@ describe("Auth Routes", () => {
 
     it("should handle authentication errors", async () => {
       mockPassport.authenticate.mockImplementation((strategy, callback) => {
-        // return (req: any, res: any, next: any) => {
-        //   callback(new Error("Database error"), null, null);
-        // };
-        return;
+        const cb = callback as (
+          err: unknown,
+          user: unknown,
+          info?: unknown
+        ) => void;
+        return (req: any, res: any, next: any) => {
+          cb(new Error("Database error"), null, null);
+        };
       });
 
       const response = await request(app).post("/auth/login").send({
@@ -210,6 +230,10 @@ describe("Auth Routes", () => {
         password: "password123",
       });
 
+      expect(mockPassport.authenticate).toHaveBeenCalledWith(
+        "local",
+        expect.any(Function)
+      );
       expect(response.status).toBe(500);
       expect(response.body).toEqual({
         error: "Database error",
@@ -234,7 +258,7 @@ describe("Auth Routes", () => {
       const response = await request(app).post("/auth/register").send({
         email: "john@example.com",
         name: "John Doe",
-        password: "Password_123",
+        password: "Password@123",
         phoneNumber: "+1234567890",
       });
 
@@ -262,7 +286,7 @@ describe("Auth Routes", () => {
         },
       });
 
-      expect(mockBcrypt.hash).toHaveBeenCalledWith("Password_123", 12);
+      expect(mockBcrypt.hash).toHaveBeenCalledWith("Password@123", 12);
     });
 
     it("should fail if user already exists", async () => {
@@ -271,7 +295,7 @@ describe("Auth Routes", () => {
       const response = await request(app).post("/auth/register").send({
         email: "john@example.com",
         name: "John Doe",
-        password: "Password_123",
+        password: "Password@123",
         phoneNumber: "+1234567890",
       });
 
@@ -290,7 +314,7 @@ describe("Auth Routes", () => {
       const response = await request(app).post("/auth/register").send({
         email: "john@example.com",
         name: "John Doe",
-        password: "Password_123",
+        password: "Password@123",
         phoneNumber: "+1234567890",
       });
 
@@ -426,7 +450,7 @@ describe("Auth Routes", () => {
         .post("/auth/change-password")
         .send({
           currentPassword: "oldpassword",
-          newPassword: "newPassword_123",
+          newPassword: "NewPassword@123",
         });
 
       expect(response.status).toBe(200);
@@ -443,13 +467,13 @@ describe("Auth Routes", () => {
         "oldpassword",
         mockUser.password
       );
-      expect(mockBcrypt.hash).toHaveBeenCalledWith("newPassword_123", 12);
+      expect(mockBcrypt.hash).toHaveBeenCalledWith("NewPassword@123", 12);
     });
 
     it("should require authentication", async () => {
       const response = await request(app).post("/auth/change-password").send({
         currentPassword: "oldpassword",
-        newPassword: "newPassword_123",
+        newPassword: "NewPassword@123",
       });
 
       expect(response.status).toBe(401);
@@ -477,7 +501,7 @@ describe("Auth Routes", () => {
 
       const response = await request(app).post("/auth/set-password").send({
         email: "john@example.com",
-        password: "Password_123",
+        password: "Password@123",
       });
 
       expect(response.status).toBe(200);
@@ -490,7 +514,7 @@ describe("Auth Routes", () => {
         where: { email: "john@example.com" },
       });
 
-      expect(mockBcrypt.hash).toHaveBeenCalledWith("Password_123", 12);
+      expect(mockBcrypt.hash).toHaveBeenCalledWith("Password@123", 12);
 
       expect(mockPrismaUser.update).toHaveBeenCalledWith({
         data: { password: "$2b$12$hashedpassword" },
@@ -503,7 +527,7 @@ describe("Auth Routes", () => {
 
       const response = await request(app).post("/auth/set-password").send({
         email: "nonexistent@example.com",
-        password: "Password_123",
+        password: "Password@123",
       });
 
       expect(response.status).toBe(404);
@@ -518,7 +542,7 @@ describe("Auth Routes", () => {
 
       const response = await request(app).post("/auth/set-password").send({
         email: "john@example.com",
-        password: "Password_123",
+        password: "Password@123",
       });
 
       expect(response.status).toBe(400);
@@ -542,7 +566,7 @@ describe("Auth Routes", () => {
 
       const response = await request(app).post("/auth/set-password").send({
         email: "john@example.com",
-        password: "Password_123",
+        password: "Password@123",
       });
 
       expect(response.status).toBe(500);
