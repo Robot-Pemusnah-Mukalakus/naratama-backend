@@ -75,6 +75,27 @@ export const checkAdmin = (req: Request, res: Response, next: NextFunction) => {
       success: false,
     });
   }
+  next();
+};
 
+export const checkStaffOrAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({
+      message: "Authentication required",
+      success: false,
+    });
+  }
+
+  const user = req.user;
+  if (user.role !== UserRole.STAFF && user.role !== UserRole.ADMIN) {
+    return res.status(403).json({
+      message: "Staff or Admin access required",
+      success: false,
+    });
+  }
   next();
 };

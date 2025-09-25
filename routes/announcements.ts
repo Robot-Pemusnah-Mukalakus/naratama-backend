@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import prisma from "#lib/prisma.js";
+import { checkStaffOrAdmin } from "#middleware/auth.js";
+import { validateSchema } from "#middleware/validation.js";
+import {
+  CreateAnnouncementSchema,
+  UpdateAnnouncementSchema,
+} from "#validations/announcement.js";
 import { AnnouncementType, Audience, Priority, Prisma } from "@prisma/client";
 import express from "express";
 
@@ -75,102 +81,112 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/announcements
-router.post("/", async (req, res) => {
-  try {
-    const {
-      content,
-      createdBy,
-      priority = "medium",
-      targetAudience = "all",
-      title,
-      type,
-    } = req.body as Prisma.AnnouncementCreateInput;
-
-    // Validate required fields
-    if (!title || !content || !type || !createdBy) {
-      return res.status(400).json({
-        message: "Missing required fields",
-        success: false,
-      });
-    }
-
-    const announcement = await prisma.announcement.create({
-      data: {
+router.post(
+  "/",
+  validateSchema(CreateAnnouncementSchema),
+  checkStaffOrAdmin,
+  async (req, res) => {
+    try {
+      const {
         content,
         createdBy,
-        priority: priority as Priority,
-        targetAudience: targetAudience as Audience,
+        priority = "medium",
+        targetAudience = "all",
         title,
         type,
-      },
-    });
+      } = req.body as Prisma.AnnouncementCreateInput;
 
-    res.status(201).json({
-      data: announcement,
-      message: "Announcement created successfully",
-      success: true,
-    });
-  } catch (error) {
-    res.status(400).json({
-      error: error instanceof Error ? error.message : "Unknown error",
-      message: "Failed to create announcement",
-      success: false,
-    });
-  }
-});
-
-// PUT /api/announcements/:id
-router.put("/:id", async (req, res) => {
-  try {
-    const updateData: Prisma.AnnouncementUpdateInput = {};
-    const allowedFields = [
-      "title",
-      "content",
-      "type",
-      "priority",
-      "targetAudience",
-    ];
-
-    // Only include allowed fields in update
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        (updateData as Record<typeof field, unknown>)[
-          field as keyof Prisma.AnnouncementUpdateInput
-        ] = req.body[field];
+      // Validate required fields
+      if (!title || !content || !type || !createdBy) {
+        return res.status(400).json({
+          message: "Missing required fields",
+          success: false,
+        });
       }
-    });
 
-    const announcement = await prisma.announcement.update({
-      data: updateData,
-      where: { id: req.params.id },
-    });
+      const announcement = await prisma.announcement.create({
+        data: {
+          content,
+          createdBy,
+          priority: priority as Priority,
+          targetAudience: targetAudience as Audience,
+          title,
+          type,
+        },
+      });
 
-    res.json({
-      data: announcement,
-      message: "Announcement updated successfully",
-      success: true,
-    });
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes("Record to update not found")
-    ) {
-      return res.status(404).json({
-        message: "Announcement not found",
+      res.status(201).json({
+        data: announcement,
+        message: "Announcement created successfully",
+        success: true,
+      });
+    } catch (error) {
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Failed to create announcement",
         success: false,
       });
     }
-
-    res.status(400).json({
-      error: error instanceof Error ? error.message : "Unknown error",
-      message: "Failed to update announcement",
-      success: false,
-    });
   }
-});
+);
+
+// PUT /api/announcements/:id
+router.put(
+  "/:id",
+  validateSchema(UpdateAnnouncementSchema),
+  checkStaffOrAdmin,
+  async (req, res) => {
+    try {
+      const updateData: Prisma.AnnouncementUpdateInput = {};
+      const allowedFields = [
+        "title",
+        "content",
+        "type",
+        "priority",
+        "targetAudience",
+      ];
+
+      // Only include allowed fields in update
+      allowedFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          (updateData as Record<typeof field, unknown>)[
+            field as keyof Prisma.AnnouncementUpdateInput
+          ] = req.body[field];
+        }
+      });
+
+      const announcement = await prisma.announcement.update({
+        data: updateData,
+        where: { id: req.params.id },
+      });
+
+      res.json({
+        data: announcement,
+        message: "Announcement updated successfully",
+        success: true,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes("Record to update not found")
+      ) {
+        return res.status(404).json({
+          message: "Announcement not found",
+          success: false,
+        });
+      }
+
+      res.status(400).json({
+        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Failed to update announcement",
+        success: false,
+      });
+    }
+  }
+);
 
 // DELETE /api/announcements/:id
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", checkStaffOrAdmin, async (req, res) => {
   try {
     await prisma.announcement.update({
       data: { isActive: false },

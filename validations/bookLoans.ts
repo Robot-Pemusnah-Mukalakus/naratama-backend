@@ -16,11 +16,11 @@ export const LoanStatusSchema = z.enum([
 // USER SCHEMAS
 // ============================
 export const GetBookLoansSchema = z.object({
-  bookId: mongoId.optional(),
+  bookId: mongoId,
   limit: z.number().min(1).max(100).default(20).optional(),
   page: z.number().min(1).default(1).optional(),
-  status: LoanStatusSchema.optional(),
-  userId: mongoId.optional(),
+  status: LoanStatusSchema,
+  userId: mongoId,
 });
 
 export const CreateBookLoanSchema = z.object({
@@ -39,12 +39,18 @@ export const UpdateBookLoanSchema = z.object({
 });
 
 export const RenewBookLoanSchema = z.object({
-  loanId: mongoId,
+  extensionDays: z
+    .number()
+    .min(1, "Extension days must be at least 1")
+    .max(30, "Extension days cannot exceed 30")
+    .optional(),
 });
 
 // ============================
 // EXPORT TYPES
 // ============================
+
 export type CreateBookLoan = z.infer<typeof CreateBookLoanSchema>;
+export type GetBookLoans = z.infer<typeof GetBookLoansSchema>;
 export type RenewBookLoan = z.infer<typeof RenewBookLoanSchema>;
 export type UpdateBookLoan = z.infer<typeof UpdateBookLoanSchema>;
