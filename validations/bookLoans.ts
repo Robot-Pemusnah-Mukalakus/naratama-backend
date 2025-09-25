@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { mongoId } from "../utils/validation.js";
+
 // ============================
 // ENUMS
 // ============================
@@ -13,11 +15,19 @@ export const LoanStatusSchema = z.enum([
 // ============================
 // USER SCHEMAS
 // ============================
+export const GetBookLoansSchema = z.object({
+  bookId: mongoId,
+  limit: z.number().min(1).max(100).default(20).optional(),
+  page: z.number().min(1).default(1).optional(),
+  status: LoanStatusSchema,
+  userId: mongoId,
+});
+
 export const CreateBookLoanSchema = z.object({
-  bookId: z.string().min(1, "Book ID is required"),
+  bookId: mongoId,
   dueDate: z.iso.datetime().or(z.date()),
   notes: z.string().max(300, "Notes too long").optional(),
-  userId: z.string().min(1, "User ID is required"),
+  userId: mongoId,
 });
 
 export const UpdateBookLoanSchema = z.object({
@@ -29,12 +39,18 @@ export const UpdateBookLoanSchema = z.object({
 });
 
 export const RenewBookLoanSchema = z.object({
-  loanId: z.string().min(1, "Loan ID is required"),
+  extensionDays: z
+    .number()
+    .min(1, "Extension days must be at least 1")
+    .max(30, "Extension days cannot exceed 30")
+    .optional(),
 });
 
 // ============================
 // EXPORT TYPES
 // ============================
+
 export type CreateBookLoan = z.infer<typeof CreateBookLoanSchema>;
+export type GetBookLoans = z.infer<typeof GetBookLoansSchema>;
 export type RenewBookLoan = z.infer<typeof RenewBookLoanSchema>;
 export type UpdateBookLoan = z.infer<typeof UpdateBookLoanSchema>;

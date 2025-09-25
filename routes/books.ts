@@ -6,10 +6,11 @@ import { Prisma } from "@prisma/client";
 import express from "express";
 
 import prisma from "../lib/prisma.js";
-import { checkStaff } from "../middleware/auth.js";
+import { checkStaffOrAdmin } from "../middleware/auth.js";
 import { validateMultiple, validateSchema } from "../middleware/validation.js";
 import {
   CreateBookSchema,
+  GetBookSchema,
   IdParamSchema,
   UpdateBookQuantitySchema,
   UpdateBookSchema,
@@ -18,7 +19,7 @@ import {
 const router = express.Router();
 
 // GET /api/books
-router.get("/", async (req, res) => {
+router.get("/", validateSchema(GetBookSchema), async (req, res) => {
   try {
     const {
       author,
@@ -173,7 +174,7 @@ router.get(
 // POST /api/books
 router.post(
   "/",
-  checkStaff,
+  checkStaffOrAdmin,
   validateSchema(CreateBookSchema),
   async (req, res) => {
     try {
@@ -256,6 +257,7 @@ router.put(
     body: UpdateBookSchema,
     params: IdParamSchema,
   }),
+  checkStaffOrAdmin,
   async (req, res) => {
     try {
       const updateData: Prisma.BookUpdateInput = {};
@@ -323,6 +325,7 @@ router.put(
     body: UpdateBookQuantitySchema,
     params: IdParamSchema,
   }),
+  checkStaffOrAdmin,
   async (req, res) => {
     try {
       const { availableQuantity, quantity } =
@@ -362,6 +365,7 @@ router.put(
 router.delete(
   "/:id",
   validateSchema(IdParamSchema, "params"),
+  checkStaffOrAdmin,
   async (req, res) => {
     try {
       await prisma.book.update({
