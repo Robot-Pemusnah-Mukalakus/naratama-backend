@@ -7,7 +7,7 @@ Development README — how to clone, configure environment variables, and run th
 | Member                 | NIM                |
 | ---------------------- | ------------------ |
 | @runsdev               | 23/514148/TK/56466 |
-| @SentientCorn          |                    |
+| @SentientCorn          | 23/518350/TK/57045 |
 | @LaluKevinProudyHandal |                    |
 | @rafeyyy1              | 23/512856/TK/56361 |
 | @Dapreall              | 23/522772/TK/57743 |
