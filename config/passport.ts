@@ -2,6 +2,7 @@
 import bcrypt from "bcrypt";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 import prisma from "../lib/prisma.js";
 import { SessionUser } from "../middleware/auth.js";
@@ -69,6 +70,55 @@ passport.use(
         console.error("Authentication error:", error);
         done(error);
         return;
+      }
+    }
+  )
+);
+
+// Configure Google OAuth Strategy
+passport.use(
+    new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      callbackURL: "/auth/google/callback",
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Find user by Google ID or email
+        let user = await prisma.user.findUnique({
+          where: { email: profile.emails?.[0]?.value || "" },
+          include: { membership: true },
+        });
+
+        if (!user) {
+          // Create new user if none exists
+          user = await prisma.user.create({
+            data: {
+              email: profile.emails?.[0]?.value || "",
+              name: profile.displayName,
+              googleId: profile.id,
+              isActive: true,
+            },
+            include: { membership: true },
+          });
+        }
+
+        const sessionUser: SessionUser = {
+          email: user.email,
+          id: user.id,
+          isActive: user.isActive,
+          lastLogin: new Date(user.lastLogin ?? Date.now()),
+          membership: user.membership,
+          name: user.name,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
+        };
+
+        done(null, sessionUser);
+      } catch (error) {
+        console.error("Google auth error:", error);
+        done(error, undefined);
       }
     }
   )
