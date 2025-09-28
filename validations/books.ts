@@ -47,6 +47,15 @@ export const CreateBookSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
 });
 
+export const GetBookSchema = z.object({
+  author: z.string().max(100, "Author name too long").optional(),
+  available: z.boolean().optional(),
+  category: z.string().max(100, "Category too long").optional(),
+  limit: z.number().min(1).default(20),
+  page: z.number().min(1).default(1),
+  search: z.string().max(100, "Search term too long").optional(),
+});
+
 export const UpdateBookSchema = z.object({
   author: z
     .string()

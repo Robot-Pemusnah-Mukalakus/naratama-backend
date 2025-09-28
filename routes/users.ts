@@ -7,7 +7,6 @@ import { generateTimestampCode } from "../utils/random.js";
 
 const router = express.Router();
 
-// Helper function to generate membership number
 function generateMembershipNumber(): string {
   return `mbr-${generateTimestampCode()}`;
 }
@@ -71,7 +70,7 @@ router.get("/me", checkAuth, async (req, res) => {
       include: {
         membership: true,
       },
-      where: { id: req.user!.id },
+      where: { id: req.user?.id },
     });
 
     if (!user) {
@@ -82,6 +81,7 @@ router.get("/me", checkAuth, async (req, res) => {
     }
 
     // Remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
     res.json({
@@ -100,8 +100,15 @@ router.get("/me", checkAuth, async (req, res) => {
 // GET /api/users/:id
 router.get("/:id", checkAuth, async (req, res) => {
   try {
-    const requestingUser = req.user!;
+    const requestingUser = req.user;
     const targetUserId = req.params.id;
+
+    if (!requestingUser) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false,
+      });
+    }
 
     // Check if user is trying to view their own profile or if they're staff/admin
     const isOwnProfile = requestingUser.id === targetUserId;
@@ -131,6 +138,7 @@ router.get("/:id", checkAuth, async (req, res) => {
     }
 
     // remove password from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
 
     res.json({
@@ -232,9 +240,16 @@ router.get("/phone/:phoneNumber", checkStaff, async (req, res) => {
 // PUT /api/users/:id
 router.put("/:id", checkAuth, async (req, res) => {
   try {
-    const { email, isMember, name } = req.body;
-    const requestingUser = req.user!;
+    const { email, name } = req.body as Prisma.UserUpdateInput;
+    const requestingUser = req.user;
     const targetUserId = req.params.id;
+
+    if (!requestingUser) {
+      return res.status(401).json({
+        message: "Unauthorized",
+        success: false,
+      });
+    }
 
     // check if user is trying to update their own profile or if they're staff/admin
     const isOwnProfile = requestingUser.id === targetUserId;
@@ -249,7 +264,7 @@ router.put("/:id", checkAuth, async (req, res) => {
       });
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (name) updateData.name = name;
     if (email !== undefined) updateData.email = email;
 
@@ -304,8 +319,6 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
       now.getTime() + 30 * 24 * 60 * 60 * 1000
     );
 
-    let membershipData;
-
     if (
       user.membership &&
       user.membership.isActive &&
@@ -316,7 +329,7 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
         user.membership.endDate.getTime() + 30 * 24 * 60 * 60 * 1000
       );
 
-      membershipData = await prisma.membership.update({
+      await prisma.membership.update({
         data: {
           endDate: newEndDate,
         },
@@ -325,11 +338,11 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
     } else {
       // Create new membership or reactivate expired one
       const membershipNumber =
-        user.membership?.membershipNumber || (await generateMembershipNumber());
+        user.membership?.membershipNumber ?? generateMembershipNumber();
 
       if (user.membership) {
         // Reactivate existing membership
-        membershipData = await prisma.membership.update({
+        await prisma.membership.update({
           data: {
             endDate: thirtyDaysFromNow,
             isActive: true,
@@ -339,7 +352,7 @@ router.put("/:id/membership", checkStaff, async (req, res) => {
         });
       } else {
         // Create new membership
-        membershipData = await prisma.membership.create({
+        await prisma.membership.create({
           data: {
             endDate: thirtyDaysFromNow,
             isActive: true,
@@ -442,7 +455,7 @@ router.delete("/:id", checkAdmin, async (req, res) => {
     });
 
     res.json({
-      message: "User deactivated successfully",
+      message: `User deleted successfully with data: ${JSON.stringify(user)}`,
       success: true,
     });
   } catch (error) {

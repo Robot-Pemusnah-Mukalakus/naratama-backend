@@ -36,9 +36,10 @@ export const IdParamSchema = z.object({
   id: z.string().min(1, "ID is required"),
 });
 
-export type IdParam = z.infer<typeof IdParamSchema>;
 // ============================
 // EXPORT TYPES
 // ============================
+
+export type IdParam = z.infer<typeof IdParamSchema>;
 export type Pagination = z.infer<typeof PaginationSchema>;
 export type Search = z.infer<typeof SearchSchema>;
