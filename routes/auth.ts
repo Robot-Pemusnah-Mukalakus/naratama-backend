@@ -21,7 +21,6 @@ import {
 const router = express.Router();
 
 // POST /api/auth/login
-
 router.post("/login", validateSchema(LoginSchema), (req, res, next) => {
   passport.authenticate(
     "local",
@@ -68,6 +67,36 @@ router.post("/login", validateSchema(LoginSchema), (req, res, next) => {
     }
   )(req, res, next);
 });
+
+// GET /api/auth/google
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// GET /api/auth/google/callback
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  (req, res) => {
+    const user = req.user as SessionUser;
+    
+    // Return JSON response like the login endpoint
+    return res.json({
+      message: "Login successful",
+      success: true,
+      user: {
+        email: user.email,
+        id: user.id,
+        lastlogin: new Date(user.lastLogin ?? Date.now()),
+        membership: user.membership,
+        name: user.name,
+        phoneNumber: user.phoneNumber,
+        role: user.role,
+      },
+    });
+  }
+);
 
 // POST /api/auth/register
 router.post("/register", validateSchema(RegisterSchema), async (req, res) => {

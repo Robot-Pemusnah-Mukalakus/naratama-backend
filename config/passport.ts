@@ -58,6 +58,7 @@ passport.use(
           id: user.id,
           isActive: user.isActive,
           lastLogin: new Date(),
+          isOauthUser: user.isOauthUser,
           membership: user.membership,
           name: user.name,
           phoneNumber: user.phoneNumber,
@@ -77,48 +78,62 @@ passport.use(
 
 // Configure Google OAuth Strategy
 passport.use(
-    new GoogleStrategy(
+  new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      callbackURL: "/auth/google/callback",
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL!,
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (_accessToken, _refreshToken, profile, done) => {
       try {
-        // Find user by Google ID or email
+        const email = profile.emails?.[0]?.value;
+        if (!email) {
+          return done(null, false, { message: "No email found from Google" });
+        }
+
+        // Look for user by email
         let user = await prisma.user.findUnique({
-          where: { email: profile.emails?.[0]?.value || "" },
+          where: { email },
           include: { membership: true },
         });
 
+        // If not found, create new account
         if (!user) {
-          // Create new user if none exists
           user = await prisma.user.create({
             data: {
-              email: profile.emails?.[0]?.value || "",
-              name: profile.displayName,
-              googleId: profile.id,
-              isActive: true,
+              email,
+              name: profile.displayName || "Unnamed User",
+              phoneNumber: "OAUTH-" + Date.now(), // you must still satisfy unique constraint
+              password: "", // leave blank since OAuth user doesn’t use local password
+              isOauthUser: true,
             },
             include: { membership: true },
           });
         }
 
+        // Build session object
         const sessionUser: SessionUser = {
-          email: user.email,
           id: user.id,
-          isActive: user.isActive,
-          lastLogin: new Date(user.lastLogin ?? Date.now()),
-          membership: user.membership,
+          email: user.email,
           name: user.name,
           phoneNumber: user.phoneNumber,
           role: user.role,
+          isActive: user.isActive,
+          isOauthUser: user.isOauthUser,
+          lastLogin: new Date(user.lastLogin ?? Date.now()),
+          membership: user.membership,
         };
 
-        done(null, sessionUser);
-      } catch (error) {
-        console.error("Google auth error:", error);
-        done(error, undefined);
+        // Update last login
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() },
+        });
+
+        return done(null, sessionUser);
+      } catch (err) {
+        console.error("Google auth error:", err);
+        return done(err);
       }
     }
   )
@@ -149,6 +164,7 @@ passport.deserializeUser(async (id: string, done) => {
       id: user.id,
       isActive: user.isActive,
       lastLogin: new Date(user.lastLogin ?? Date.now()),
+      isOauthUser: user.isOauthUser,
       membership: user.membership,
       name: user.name,
       phoneNumber: user.phoneNumber,
