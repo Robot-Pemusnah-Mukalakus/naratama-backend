@@ -154,11 +154,11 @@ router.get("/:id", checkAuth, async (req, res) => {
   }
 });
 
-// GET /api/users/phone/:phoneNumber
-router.get("/phone/:phoneNumber", checkStaff, async (req, res) => {
+// GET /api/users/email/:email
+router.get("/email/:email", checkStaff, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
-      where: { phoneNumber: req.params.phoneNumber },
+      where: { email: req.params.email },
     });
 
     if (!user) {
