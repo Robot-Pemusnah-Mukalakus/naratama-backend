@@ -14,7 +14,7 @@ export const CreateUserSchema = z.object({
   email: email,
   name: name,
   password: passwordReq.optional(),
-  phoneNumber: phoneNumber,
+  phoneNumber: phoneNumber.optional(),
   role: UserRoleSchema.optional(),
 });
 

@@ -1,8 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import bcrypt from "bcrypt";
 import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Profile } from "passport-google-oauth20";
+import { Strategy as LocalStrategy } from "passport-local";
 
 import prisma from "../lib/prisma.js";
 import { SessionUser } from "../middleware/auth.js";
@@ -57,8 +63,8 @@ passport.use(
           email: user.email,
           id: user.id,
           isActive: user.isActive,
-          lastLogin: new Date(),
           isOauthUser: user.isOauthUser,
+          lastLogin: new Date(),
           membership: user.membership,
           name: user.name,
           phoneNumber: user.phoneNumber,
@@ -80,11 +86,13 @@ passport.use(
 passport.use(
   new GoogleStrategy(
     {
-      clientID: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: process.env.GOOGLE_CALLBACK_URL!,
+      callbackURL:
+        process.env.GOOGLE_CALLBACK_URL ??
+        "http://localhost:8080/api/auth/google/callback",
+      clientID: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
     },
-    async (_accessToken, _refreshToken, profile, done) => {
+    async (_accessToken, _refreshToken, profile: Profile, done) => {
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) {
@@ -93,41 +101,53 @@ passport.use(
 
         // Look for user by email
         let user = await prisma.user.findUnique({
-          where: { email },
           include: { membership: true },
+          where: { email },
         });
 
         // If not found, create new account
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email,
-              name: profile.displayName || "Unnamed User",
-              phoneNumber: "OAUTH-" + Date.now(), // you must still satisfy unique constraint
-              password: "", // leave blank since OAuth user doesn’t use local password
-              isOauthUser: true,
-            },
-            include: { membership: true },
-          });
-        }
+        user ??= await prisma.user.create({
+          data: {
+            email,
+            isOauthUser: true,
+            name: profile.displayName ?? "Unnamed User",
+            password: "", // leave blank since OAuth user doesn’t use local password
+            phoneNumber: "",
+          },
+          include: { membership: true },
+        });
+
+        let googleUser = await prisma.googleUser.findUnique({
+          where: { googleId: profile.id },
+        });
+
+        googleUser ??= await prisma.googleUser.create({
+          data: {
+            email: user.email,
+            googleId: profile.id,
+            name:
+              profile.displayName ?? profile.name?.givenName ?? "Unnamed User",
+            userId: user.id,
+          },
+        });
 
         // Build session object
         const sessionUser: SessionUser = {
-          id: user.id,
           email: user.email,
-          name: user.name,
-          phoneNumber: user.phoneNumber,
-          role: user.role,
+          id: user.id,
           isActive: user.isActive,
           isOauthUser: user.isOauthUser,
           lastLogin: new Date(user.lastLogin ?? Date.now()),
           membership: user.membership,
+          name: user.name,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
         };
 
         // Update last login
         await prisma.user.update({
-          where: { id: user.id },
           data: { lastLogin: new Date() },
+          where: { id: user.id },
         });
 
         return done(null, sessionUser);
@@ -163,8 +183,8 @@ passport.deserializeUser(async (id: string, done) => {
       email: user.email,
       id: user.id,
       isActive: user.isActive,
-      lastLogin: new Date(user.lastLogin ?? Date.now()),
       isOauthUser: user.isOauthUser,
+      lastLogin: new Date(user.lastLogin ?? Date.now()),
       membership: user.membership,
       name: user.name,
       phoneNumber: user.phoneNumber,

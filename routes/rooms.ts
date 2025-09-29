@@ -159,7 +159,7 @@ router.get(
               },
             },
             user: {
-              select: { name: true, phoneNumber: true },
+              select: { email: true, name: true, phoneNumber: true },
             },
           },
           orderBy: { createdAt: "desc" },
@@ -280,7 +280,7 @@ router.post(
             },
           },
           user: {
-            select: { name: true, phoneNumber: true },
+            select: { email: true, name: true, phoneNumber: true },
           },
         },
       });
@@ -329,7 +329,7 @@ router.put(
             },
           },
           user: {
-            select: { name: true, phoneNumber: true },
+            select: { email: true, name: true, phoneNumber: true },
           },
         },
         where: { id: req.params.id },

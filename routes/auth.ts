@@ -71,16 +71,19 @@ router.post("/login", validateSchema(LoginSchema), (req, res, next) => {
 // GET /api/auth/google
 router.get(
   "/google",
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 // GET /api/auth/google/callback
 router.get(
   "/google/callback",
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const user = req.user as SessionUser;
-    
+
     // Return JSON response like the login endpoint
     return res.json({
       message: "Login successful",
