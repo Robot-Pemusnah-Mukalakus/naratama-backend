@@ -19,7 +19,7 @@ router.get(
   validateSchema(GetBookLoansSchema, "params"),
   async (req, res) => {
     try {
-      const { bookId, limit = 20, page = 1, status, userId } = req.params;
+      const { bookId, limit = 20, page = 1, status, userId } = req.query;
 
       const pageNum = parseInt(page as string);
       const limitNum = parseInt(limit as string);
@@ -27,8 +27,8 @@ router.get(
 
       const where: Prisma.BookLoanWhereInput = {};
 
-      if (userId) where.userId = userId;
-      if (bookId) where.bookId = bookId;
+      if (userId) where.userId = userId as string;
+      if (bookId) where.bookId = bookId as string;
       if (status) where.status = status as LoanStatus;
 
       const [loans, total] = await Promise.all([

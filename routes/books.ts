@@ -28,7 +28,7 @@ router.get("/", validateSchema(GetBookSchema, "params"), async (req, res) => {
       limit = 20,
       page = 1,
       search,
-    } = req.params;
+    } = req.query;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
