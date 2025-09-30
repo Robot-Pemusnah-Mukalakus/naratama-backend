@@ -1,6 +1,6 @@
 # Naratama Backend
 
-Development README — how to clone, configure environment variables, and run the development server.
+Aplikasi Perpustakaan Naratama merupakan sistem digital terintegrasi yang dirancang untuk mempermudah layanan peminjaman buku dan ruang diskusi secara online. Melalui aplikasi ini, pengunjung dapat mengecek ketersediaan koleksi, memesan ruang sesuai jadwal yang berlaku, serta mengelola membership dan commitment fee tanpa harus mengubah kebiasaan lama. Selain itu, aplikasi juga menyediakan fitur pengumuman buku baru dan informasi penting secara digital, sehingga komunikasi dengan pengunjung menjadi lebih cepat, efisien, dan mudah diakses.
 
 ## The Teams:
 
@@ -12,26 +12,95 @@ Development README — how to clone, configure environment variables, and run th
 | @rafeyyy1              | 23/512856/TK/56361 |
 | @Dapreall              | 23/522772/TK/57743 |
 
-## Prerequisites
+## Struktur Folder & File
+
+```
+C:.
+└───naratama-backend
+    │   .env
+    │   .gitignore
+    │   .nvmrc
+    │   .prettierignore
+    │   eslint.config.js
+    │   index.ts
+    │   LICENSE
+    │   package-lock.json
+    │   package.json
+    │   README.md
+    │   tsconfig.build.json
+    │   tsconfig.json
+    │   vercel.json
+    │   vitest.config.js
+    │
+    ├───config
+    │       passport.ts
+    │
+    ├───docs
+    │       api-endpoints.md
+    │       openapi.json
+    │
+    ├───lib
+    │       prisma.ts
+    │
+    ├───middleware
+    │       auth.ts
+    │       validation.ts
+    │
+    ├───prisma
+    │       schema.prisma
+    │
+    ├───routes
+    │       announcements.ts
+    │       auth.ts
+    │       book-loans.ts
+    │       books-advanced.ts
+    │       books.ts
+    │       rooms.ts
+    │       users.ts
+    │
+    ├───utils
+    │       random.ts
+    │       validation.ts
+    │
+    ├───validations
+    │       announcement.ts
+    │       auth.ts
+    │       bookLoans.ts
+    │       books.ts
+    │       booksAdvanced.ts
+    │       index.ts
+    │       membership.ts
+    │       queries.ts
+    │       roomBookings.ts
+    │       rooms.ts
+    │       users.ts
+    │
+    └───__tests__
+            auth.spec.ts
+            books.spec.ts
+            users.spec.ts
+```
+## Setup & Instalasi
+# Prerequisites
 
 - Node.js 18+ (recommended)
 - npm
 - MongoDB instance (local or remote)
 
-## Clone the repository
+# Clone the repository
 
 ```powershell
 git clone https://github.com/Robot-Pemusnah-Mukalakus/naratama-backend.git
 cd naratama-backend
 ```
 
-## Install dependencies
+# Install dependencies
 
 ```powershell
 npm install
 ```
 
-## Environment variables
+# Environment variables
 
 Create a `.env` file in the project root. You can copy `.env.example` if present.
 
@@ -49,42 +118,32 @@ SESSION_SECRET=replace-this-with-a-secure-random-string
 PORT=8080
 ```
 
-## Database
+## 🛠️ Technologies Used
 
-This project uses Prisma with MongoDB. To generate the Prisma client and push the schema:
+- **Backend Framework**  
+  - Node.js  
+  - Express.js  
 
-```powershell
-# generate client
-npm run db:generate
+- **Database**  
+  - MongoDB  
+  - Prisma ORM  
 
-# push schema to database
-npm run db:push
-```
+- **Authentication**  
+  - Passport.js  
+    - passport-local  
+    - passport-google-oauth20  
+  - bcrypt (password hashing)  
 
-If you have seed data:
+- **Session Management**  
+  - express-session  
+  - connect-mongo (MongoDB store)  
 
-```powershell
-npm run seed
-```
+- **Configuration & Utilities**  
+  - dotenv (environment variable management)  
+  - cors (CORS middleware)  
+  - zod (schema validation)  
+  - TypeScript (type-safe development)  
 
-## Run development server
-
-The project uses `ts-node` with ES module loader. Start the dev server with nodemon:
-
-```powershell
-npm run dev
-```
-
-Server will be available at `http://localhost:8080` (or `http://localhost:$PORT`).
-
-## Notes
-
-- For frontend requests, enable credentials: `fetch(..., { credentials: 'include' })` or `axios` with `withCredentials: true`.
-
-## Troubleshooting
-
-- If you see Prisma type errors after editing `schema.prisma`, run `npm run db:generate`.
-- Ensure `DATABASE_URL` points to a running MongoDB instance.
-- After schema changes, run `npm run db:push` to sync the database.
-
----
+- **Code Quality**  
+  - ESLint  
+  - Prettier  
