@@ -19,7 +19,7 @@ import {
 const router = express.Router();
 
 // GET /api/books
-router.get("/", validateSchema(GetBookSchema), async (req, res) => {
+router.get("/", validateSchema(GetBookSchema, "params"), async (req, res) => {
   try {
     const {
       author,
@@ -28,7 +28,7 @@ router.get("/", validateSchema(GetBookSchema), async (req, res) => {
       limit = 20,
       page = 1,
       search,
-    } = req.query;
+    } = req.params;
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
