@@ -15,8 +15,7 @@ Aplikasi Perpustakaan Naratama merupakan sistem digital terintegrasi yang diranc
 ## Struktur Folder & File
 
 ```
-C:.
-└───naratama-backend
+naratama-backend
     │   .env
     │   .gitignore
     │   .nvmrc
@@ -79,13 +78,21 @@ C:.
             auth.spec.ts
             books.spec.ts
             users.spec.ts
+            roomBookings.spec.ts (incomplete)
+            rooms.spec.ts (incomplete)
+            bookLoans.spec.ts (incomplete)
+            announcements.spec.ts (incomplete)
+
 ```
+
 ## Setup & Instalasi
+
 # Prerequisites
 
 - Node.js 18+ (recommended)
 - npm
 - MongoDB instance (local or remote)
+- Google OAuth 2.0 credentials (for Google login)
 
 # Clone the repository
 
@@ -100,50 +107,73 @@ cd naratama-backend
 npm install
 ```
 
+# Run the development server
+
+```powershell
+npm run dev
+```
+
 # Environment variables
 
 Create a `.env` file in the project root. You can copy `.env.example` if present.
 
-Required variables:
-
-- `DATABASE_URL` — MongoDB connection string, e.g. `mongodb://localhost:27017/naratama`
-- `SESSION_SECRET` — secret string used to sign session cookies
-- `PORT` (optional) — port to run the dev server (default: `8080`)
-
 Example `.env`:
 
-```
-DATABASE_URL=mongodb://localhost:27017/naratama
-SESSION_SECRET=replace-this-with-a-secure-random-string
+```yaml
+# Server Configuration
 PORT=8080
+
+# MongoDB Configuration (used by Prisma and session store)
+DATABASE_URL="mongodb://localhost:27017/naratama-library"
+
+# For MongoDB Atlas (replace with your connection string):
+# DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/naratama-library?retryWrites=true&w=majority"
+
+# Session Configuration
+SESSION_SECRET="your-super-secret-session-key-change-this-in-production-256-bit-minimum"
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+GOOGLE_CALLBACK_URL="http://localhost:8080/api/auth/google/callback"
+
+# CORS Configuration
+FRONTEND_URL=http://localhost:3000
+
+# Environment
+NODE_ENV=development
 ```
 
 ## 🛠️ Technologies Used
 
-- **Backend Framework**  
-  - Node.js  
-  - Express.js  
+- **Backend Framework**
+  - Node.js
+  - Express.js
 
-- **Database**  
-  - MongoDB  
-  - Prisma ORM  
+- **Database**
+  - MongoDB
+  - Prisma ORM
 
-- **Authentication**  
-  - Passport.js  
-    - passport-local  
-    - passport-google-oauth20  
-  - bcrypt (password hashing)  
+- **Authentication**
+  - Passport.js
+    - passport-local
+    - passport-google-oauth20
+  - bcrypt (password hashing)
 
-- **Session Management**  
-  - express-session  
-  - connect-mongo (MongoDB store)  
+- **Session Management**
+  - express-session
+  - connect-mongo (MongoDB store)
 
-- **Configuration & Utilities**  
-  - dotenv (environment variable management)  
-  - cors (CORS middleware)  
-  - zod (schema validation)  
-  - TypeScript (type-safe development)  
+- **Configuration & Utilities**
+  - dotenv (environment variable management)
+  - cors (CORS middleware)
+  - zod (schema validation)
+  - TypeScript (type-safe development)
 
-- **Code Quality**  
-  - ESLint  
-  - Prettier  
+- **Code Quality**
+  - ESLint
+  - Prettier
+
+- **Testing**
+  - Vitest
+  - Supertest
