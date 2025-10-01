@@ -27,9 +27,9 @@ passport.use(
           return;
         }
 
-        if (!user.password) {
+        if (!user.password && user.isOauthUser) {
           done(null, false, {
-            message: "Account not activated. Please set a password first.",
+            message: "Log in with Google OAuth provider",
           });
           return;
         }

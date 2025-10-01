@@ -114,7 +114,7 @@ router.get("/:id", async (req, res) => {
           select: { author: true, isbn: true, title: true },
         },
         user: {
-          select: { name: true, phoneNumber: true },
+          select: { email: true, name: true, phoneNumber: true },
         },
       },
       where: { id: req.params.id },
@@ -400,7 +400,7 @@ router.put(
             select: { author: true, isbn: true, title: true },
           },
           user: {
-            select: { name: true, phoneNumber: true },
+            select: { email: true, name: true, phoneNumber: true },
           },
         },
         where: { id: req.params.id },
