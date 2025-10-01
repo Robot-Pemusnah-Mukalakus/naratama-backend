@@ -29,14 +29,14 @@ passport.use(
 
         if (!user) {
           done(null, false, {
-            message: "Invalid phone number or password",
+            message: "Invalid email or password",
           });
           return;
         }
 
-        if (!user.password) {
+        if (!user.password && user.isOauthUser) {
           done(null, false, {
-            message: "Account not activated. Please set a password first.",
+            message: "Log in with Google OAuth provider",
           });
           return;
         }

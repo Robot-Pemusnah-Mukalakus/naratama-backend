@@ -113,7 +113,7 @@ router.get("/:id", async (req, res) => {
           select: { author: true, isbn: true, title: true },
         },
         user: {
-          select: { email: true, name: true },
+          select: { email: true, name: true, phoneNumber: true },
         },
       },
       where: { id: req.params.id },
@@ -399,7 +399,7 @@ router.put(
             select: { author: true, isbn: true, title: true },
           },
           user: {
-            select: { email: true, name: true },
+            select: { email: true, name: true, phoneNumber: true },
           },
         },
         where: { id: req.params.id },
