@@ -29,7 +29,7 @@ passport.use(
 
         if (!user) {
           done(null, false, {
-            message: "Invalid phone number or password",
+            message: "Invalid email or password",
           });
           return;
         }
