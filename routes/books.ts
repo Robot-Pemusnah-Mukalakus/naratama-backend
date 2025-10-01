@@ -19,7 +19,7 @@ import {
 const router = express.Router();
 
 // GET /api/books
-router.get("/", validateSchema(GetBookSchema), async (req, res) => {
+router.get("/", validateSchema(GetBookSchema, "params"), async (req, res) => {
   try {
     const {
       author,

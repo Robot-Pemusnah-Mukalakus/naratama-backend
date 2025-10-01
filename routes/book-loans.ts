@@ -16,7 +16,7 @@ const router = express.Router();
 // GET /api/book-loans
 router.get(
   "/",
-  validateSchema(GetBookLoansSchema, "query"),
+  validateSchema(GetBookLoansSchema, "params"),
   async (req, res) => {
     try {
       const { bookId, limit = 20, page = 1, status, userId } = req.query;
@@ -38,8 +38,7 @@ router.get(
               select: { author: true, isbn: true, title: true },
             },
             user: {
-              include: { membership: true },
-              select: { name: true, phoneNumber: true },
+              select: { email: true, name: true },
             },
           },
           orderBy: { loanDate: "desc" },
@@ -232,7 +231,7 @@ router.post(
                 select: { author: true, isbn: true, title: true },
               },
               user: {
-                select: { name: true, phoneNumber: true },
+                select: { email: true, name: true },
               },
             },
           });
@@ -319,7 +318,7 @@ router.put(
                 select: { author: true, isbn: true, title: true },
               },
               user: {
-                select: { name: true, phoneNumber: true },
+                select: { email: true, name: true },
               },
             },
             where: { id: req.params.id },

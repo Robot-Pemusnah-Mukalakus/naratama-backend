@@ -1,6 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import bcrypt from "bcrypt";
 import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Profile } from "passport-google-oauth20";
 import { Strategy as LocalStrategy } from "passport-local";
 
 import prisma from "../lib/prisma.js";
@@ -70,6 +77,83 @@ passport.use(
         console.error("Authentication error:", error);
         done(error);
         return;
+      }
+    }
+  )
+);
+
+// Configure Google OAuth Strategy
+passport.use(
+  new GoogleStrategy(
+    {
+      callbackURL:
+        process.env.GOOGLE_CALLBACK_URL ??
+        "http://localhost:8080/api/auth/google/callback",
+      clientID: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    },
+    async (_accessToken, _refreshToken, profile: Profile, done) => {
+      try {
+        const email = profile.emails?.[0]?.value;
+        if (!email) {
+          return done(null, false, { message: "No email found from Google" });
+        }
+
+        // Look for user by email
+        let user = await prisma.user.findUnique({
+          include: { membership: true },
+          where: { email },
+        });
+
+        // If not found, create new account
+        user ??= await prisma.user.create({
+          data: {
+            email,
+            isOauthUser: true,
+            name: profile.displayName ?? "Unnamed User",
+            password: "", // leave blank since OAuth user doesn’t use local password
+            phoneNumber: "",
+          },
+          include: { membership: true },
+        });
+
+        let googleUser = await prisma.googleUser.findUnique({
+          where: { googleId: profile.id },
+        });
+
+        googleUser ??= await prisma.googleUser.create({
+          data: {
+            email: user.email,
+            googleId: profile.id,
+            name:
+              profile.displayName ?? profile.name?.givenName ?? "Unnamed User",
+            userId: user.id,
+          },
+        });
+
+        // Build session object
+        const sessionUser: SessionUser = {
+          email: user.email,
+          id: user.id,
+          isActive: user.isActive,
+          isOauthUser: user.isOauthUser,
+          lastLogin: new Date(user.lastLogin ?? Date.now()),
+          membership: user.membership,
+          name: user.name,
+          phoneNumber: user.phoneNumber,
+          role: user.role,
+        };
+
+        // Update last login
+        await prisma.user.update({
+          data: { lastLogin: new Date() },
+          where: { id: user.id },
+        });
+
+        return done(null, sessionUser);
+      } catch (err) {
+        console.error("Google auth error:", err);
+        return done(err);
       }
     }
   )

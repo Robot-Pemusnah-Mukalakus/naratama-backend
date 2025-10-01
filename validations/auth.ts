@@ -18,7 +18,7 @@ export const RegisterSchema = z.object({
   email: email,
   name: name,
   password: passwordReq,
-  phoneNumber: phoneNumber,
+  phoneNumber: phoneNumber.optional(),
 });
 
 export const ChangePasswordSchema = z.object({

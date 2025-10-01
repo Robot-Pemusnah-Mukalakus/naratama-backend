@@ -21,7 +21,7 @@ const router = express.Router();
 // GET /api/rooms
 router.get(
   "/",
-  validateSchema(GetRoomQuerySchema, "query"),
+  validateSchema(GetRoomQuerySchema, "params"),
   async (req, res) => {
     try {
       const { available, type } = req.query;
@@ -118,7 +118,7 @@ router.get(
 // GET /api/rooms/bookings
 router.get(
   "/bookings",
-  validateSchema(GetRoomBookingsQuerySchema, "query"),
+  validateSchema(GetRoomBookingsQuerySchema, "params"),
   async (req, res) => {
     try {
       const { date, limit = 20, page = 1, roomId, status, userId } = req.query;
@@ -159,7 +159,7 @@ router.get(
               },
             },
             user: {
-              select: { name: true, phoneNumber: true },
+              select: { email: true, name: true, phoneNumber: true },
             },
           },
           orderBy: { createdAt: "desc" },
@@ -280,7 +280,7 @@ router.post(
             },
           },
           user: {
-            select: { name: true, phoneNumber: true },
+            select: { email: true, name: true, phoneNumber: true },
           },
         },
       });
@@ -329,7 +329,7 @@ router.put(
             },
           },
           user: {
-            select: { name: true, phoneNumber: true },
+            select: { email: true, name: true, phoneNumber: true },
           },
         },
         where: { id: req.params.id },

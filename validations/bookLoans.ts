@@ -16,11 +16,11 @@ export const LoanStatusSchema = z.enum([
 // USER SCHEMAS
 // ============================
 export const GetBookLoansSchema = z.object({
-  bookId: mongoId,
+  bookId: mongoId.optional(),
   limit: z.number().min(1).max(100).default(20).optional(),
   page: z.number().min(1).default(1).optional(),
-  status: LoanStatusSchema,
-  userId: mongoId,
+  status: LoanStatusSchema.optional(),
+  userId: mongoId.optional(),
 });
 
 export const CreateBookLoanSchema = z.object({

@@ -17,9 +17,12 @@ export const PaymentStatusSchema = z.enum(["UNPAID", "PAID", "REFUNDED"]);
 // ============================
 
 export const GetRoomBookingsQuerySchema = z.object({
-  date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: "Invalid date format",
-  }),
+  date: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), {
+      message: "Invalid date format",
+    })
+    .optional(),
   limit: z.number().min(0).optional().default(20),
   page: z.number().min(1).optional().default(1),
   roomId: mongoId.optional(),
