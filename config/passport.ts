@@ -22,7 +22,7 @@ passport.use(
 
         if (!user) {
           done(null, false, {
-            message: "Invalid phone number or password",
+            message: "Invalid email or password",
           });
           return;
         }
@@ -56,6 +56,7 @@ passport.use(
           email: user.email,
           id: user.id,
           isActive: user.isActive,
+          isOauthUser: user.isOauthUser,
           lastLogin: new Date(),
           membership: user.membership,
           name: user.name,
@@ -98,6 +99,7 @@ passport.deserializeUser(async (id: string, done) => {
       email: user.email,
       id: user.id,
       isActive: user.isActive,
+      isOauthUser: user.isOauthUser,
       lastLogin: new Date(user.lastLogin ?? Date.now()),
       membership: user.membership,
       name: user.name,

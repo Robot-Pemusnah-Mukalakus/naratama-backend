@@ -176,7 +176,7 @@ describe("Auth Routes", () => {
         user: {
           email: mockSessionUser.email,
           id: mockSessionUser.id,
-          lastlogin: mockSessionUser.lastLogin,
+            lastlogin: expect.any(String),
           membership: mockSessionUser.membership,
           name: mockSessionUser.name,
           phoneNumber: mockSessionUser.phoneNumber,
@@ -246,6 +246,54 @@ describe("Auth Routes", () => {
       const response = await request(app).post("/auth/login").send({});
 
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe("GET /auth/google", () => {
+    it("should initiate Google OAuth flow", async () => {
+      const handler = vi.fn((req: any, res: any) => {
+        res.status(302).send("redirect");
+      });
+      mockPassport.authenticate.mockReturnValueOnce(handler);
+
+      const response = await request(app).get("/auth/google");
+
+      expect(mockPassport.authenticate).toHaveBeenCalledWith("google", {
+        scope: ["profile", "email"],
+      });
+      expect(handler).toHaveBeenCalled();
+      expect(response.status).toBe(302);
+    });
+  });
+
+  describe("GET /auth/google/callback", () => {
+    it("should return user info after successful OAuth", async () => {
+      mockPassport.authenticate.mockImplementationOnce(() => {
+        return (req: any, _res: any, next: any) => {
+          req.user = mockSessionUser;
+          next();
+        };
+      });
+
+      const response = await request(app).get("/auth/google/callback");
+
+      expect(mockPassport.authenticate).toHaveBeenCalledWith("google", {
+        failureRedirect: "/login",
+      });
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        message: "Login successful",
+        success: true,
+        user: {
+          email: mockSessionUser.email,
+          id: mockSessionUser.id,
+          lastlogin: expect.any(String),
+          membership: mockSessionUser.membership,
+          name: mockSessionUser.name,
+          phoneNumber: mockSessionUser.phoneNumber,
+          role: mockSessionUser.role,
+        },
+      });
     });
   });
 
@@ -468,6 +516,59 @@ describe("Auth Routes", () => {
         mockUser.password
       );
       expect(mockBcrypt.hash).toHaveBeenCalledWith("NewPassword@123", 12);
+    });
+
+    it("should return 404 when user not found", async () => {
+      mockPrismaUser.findUnique.mockResolvedValue(null);
+
+      const authApp = express();
+      authApp.use(express.json());
+      authApp.use((req: any, _res, next) => {
+        req.user = mockSessionUser;
+        req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
+        next();
+      });
+      authApp.use("/auth", authRouter);
+
+      const response = await request(authApp)
+        .post("/auth/change-password")
+        .send({
+          currentPassword: "oldpassword",
+          newPassword: "NewPassword@123",
+        });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        message: "User not found or password not set",
+        success: false,
+      });
+    });
+
+    it("should reject incorrect current password", async () => {
+      mockPrismaUser.findUnique.mockResolvedValue(mockUser);
+      mockBcrypt.compare.mockResolvedValue(false as never);
+
+      const authApp = express();
+      authApp.use(express.json());
+      authApp.use((req: any, _res, next) => {
+        req.user = mockSessionUser;
+        req.isAuthenticated = (() => true) as typeof req.isAuthenticated;
+        next();
+      });
+      authApp.use("/auth", authRouter);
+
+      const response = await request(authApp)
+        .post("/auth/change-password")
+        .send({
+          currentPassword: "wrongpassword",
+          newPassword: "NewPassword@123",
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({
+        message: "Current password is incorrect",
+        success: false,
+      });
     });
 
     it("should require authentication", async () => {
