@@ -9,7 +9,7 @@ export const isbnPattern =
 
 // pass: 8 characters, at least 1 uppercase, 1 lowercase, 1 number and 1 special character
 export const passwordRequirement =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,64}$/;
 
 // membership code pattern: mbr-XXXX (X: uppercase letter or digit)
 export const membershipCode = /^mbr-[A-Z0-9]+$/;
