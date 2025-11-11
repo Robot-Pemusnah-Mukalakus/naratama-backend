@@ -11,63 +11,58 @@ const seedData = async () => {
     await prisma.announcement.deleteMany({});
     await prisma.book.deleteMany({});
     await prisma.room.deleteMany({});
-    await prisma.user.deleteMany({});
+    // await prisma.user.deleteMany({});
 
     console.log("Existing data cleared");
 
     const rooms = [
       {
-        roomNumber: "SD001",
-        name: "Ruang Diskusi Kecil 1",
-        type: "SMALL_DISCUSSION" as const,
-        capacity: 6,
-        hourlyRate: 50000,
         amenities: ["Whiteboard", "Proyektor", "AC", "WiFi"],
+        capacity: 6,
         description:
           "Ruang diskusi privat untuk grup kecil dengan fasilitas lengkap",
+        hourlyRate: 50000,
+        name: "Ruang Diskusi Kecil 1",
+        roomNumber: "SD001",
+        type: "SMALL_DISCUSSION" as const,
       },
       {
-        roomNumber: "SD002",
-        name: "Ruang Diskusi Kecil 2",
-        type: "SMALL_DISCUSSION" as const,
-        capacity: 8,
-        hourlyRate: 50000,
         amenities: ["Whiteboard", "TV LED", "AC", "WiFi"],
-        description: "Ruang diskusi privat dengan TV LED untuk presentasi",
-      },
-      {
-        roomNumber: "SD003",
-        name: "Ruang Diskusi Kecil 3",
-        type: "SMALL_DISCUSSION" as const,
-        capacity: 6,
-        hourlyRate: 45000,
-        amenities: ["Whiteboard", "AC", "WiFi"],
-        description: "Ruang diskusi sederhana untuk grup kecil",
-      },
-      {
-        roomNumber: "SD004",
-        name: "Ruang Diskusi Kecil 4",
-        type: "SMALL_DISCUSSION" as const,
         capacity: 8,
+        description: "Ruang diskusi privat dengan TV LED untuk presentasi",
         hourlyRate: 50000,
-        amenities: ["Whiteboard", "Flipchart", "AC", "WiFi"],
-        description: "Ruang diskusi dengan fasilitas flipchart",
-      },
-      {
-        roomNumber: "SD005",
-        name: "Ruang Diskusi Kecil 5",
+        name: "Ruang Diskusi Kecil 2",
+        roomNumber: "SD002",
         type: "SMALL_DISCUSSION" as const,
-        capacity: 6,
-        hourlyRate: 45000,
-        amenities: ["Whiteboard", "AC", "WiFi"],
-        description: "Ruang diskusi kompak untuk tim kecil",
       },
       {
-        roomNumber: "LM001",
-        name: "Ruang Pertemuan Besar 1",
-        type: "LARGE_MEETING" as const,
-        capacity: 25,
-        hourlyRate: 150000,
+        amenities: ["Whiteboard", "AC", "WiFi"],
+        capacity: 6,
+        description: "Ruang diskusi sederhana untuk grup kecil",
+        hourlyRate: 45000,
+        name: "Ruang Diskusi Kecil 3",
+        roomNumber: "SD003",
+        type: "SMALL_DISCUSSION" as const,
+      },
+      {
+        amenities: ["Whiteboard", "Flipchart", "AC", "WiFi"],
+        capacity: 8,
+        description: "Ruang diskusi dengan fasilitas flipchart",
+        hourlyRate: 50000,
+        name: "Ruang Diskusi Kecil 4",
+        roomNumber: "SD004",
+        type: "SMALL_DISCUSSION" as const,
+      },
+      {
+        amenities: ["Whiteboard", "AC", "WiFi"],
+        capacity: 6,
+        description: "Ruang diskusi kompak untuk tim kecil",
+        hourlyRate: 45000,
+        name: "Ruang Diskusi Kecil 5",
+        roomNumber: "SD005",
+        type: "SMALL_DISCUSSION" as const,
+      },
+      {
         amenities: [
           "Proyektor",
           "Sound System",
@@ -76,15 +71,15 @@ const seedData = async () => {
           "WiFi",
           "Catering Setup",
         ],
+        capacity: 25,
         description:
           "Ruang pertemuan besar dengan fasilitas lengkap untuk acara formal",
+        hourlyRate: 150000,
+        name: "Ruang Pertemuan Besar 1",
+        roomNumber: "LM001",
+        type: "LARGE_MEETING" as const,
       },
       {
-        roomNumber: "LM002",
-        name: "Ruang Pertemuan Besar 2",
-        type: "LARGE_MEETING" as const,
-        capacity: 30,
-        hourlyRate: 175000,
         amenities: [
           "Proyektor",
           "Sound System",
@@ -94,8 +89,13 @@ const seedData = async () => {
           "Stage",
           "Catering Setup",
         ],
+        capacity: 30,
         description:
           "Ruang pertemuan terbesar dengan panggung kecil untuk presentasi",
+        hourlyRate: 175000,
+        name: "Ruang Pertemuan Besar 2",
+        roomNumber: "LM002",
+        type: "LARGE_MEETING" as const,
       },
     ];
 
@@ -104,144 +104,152 @@ const seedData = async () => {
 
     const books = [
       {
-        isbn: "9786020633084",
-        title: "Laskar Pelangi",
         author: "Andrea Hirata",
-        publisher: "Bentang Pustaka",
-        publishYear: 2020,
+        availableQuantity: 5,
         category: "Fiction",
-        genre: ["Novel", "Indonesian Literature"],
-        language: "Indonesian",
-        pages: 534,
+        coverImage:
+          "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1489732961i/1362193.jpg",
         description:
           "Novel tentang perjuangan anak-anak Belitung menempuh pendidikan",
-        quantity: 5,
-        availableQuantity: 5,
+        genre: ["Novel", "Indonesian Literature"],
+        isbn: "9786020633084",
+        language: "Indonesian",
         location: "A1-B2-C1",
+        pages: 534,
+        publisher: "Bentang Pustaka",
+        publishYear: 2020,
+        quantity: 5,
+        title: "Laskar Pelangi",
       },
       {
-        isbn: "9786024246945",
-        title: "Atomic Habits",
         author: "James Clear",
-        publisher: "Gramedia Pustaka Utama",
-        publishYear: 2019,
+        availableQuantity: 3,
         category: "Non-Fiction",
-        genre: ["Self Help", "Psychology"],
-        language: "Indonesian",
-        pages: 352,
+        coverImage:
+          "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1655988385i/40121378.jpg",
         description:
           "Panduan praktis membangun kebiasaan baik dan menghilangkan kebiasaan buruk",
-        quantity: 3,
-        availableQuantity: 3,
+        genre: ["Self Help", "Psychology"],
+        isbn: "9786024246945",
+        language: "Indonesian",
         location: "B1-A3-C2",
+        pages: 352,
+        publisher: "Gramedia Pustaka Utama",
+        publishYear: 2019,
+        quantity: 3,
+        title: "Atomic Habits",
       },
       {
-        isbn: "9786230030573",
-        title: "Sapiens: Sejarah Ringkas Umat Manusia",
         author: "Yuval Noah Harari",
-        publisher: "Pustaka Alvabet",
-        publishYear: 2021,
+        availableQuantity: 2,
         category: "History",
-        genre: ["History", "Anthropology", "Philosophy"],
-        language: "Indonesian",
-        pages: 512,
+        coverImage:
+          "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1500472839i/35705551.jpg",
         description:
           "Eksplorasi tentang evolusi manusia dari pemburu-pengumpul hingga era modern",
-        quantity: 2,
-        availableQuantity: 2,
+        genre: ["History", "Anthropology", "Philosophy"],
+        isbn: "9786230030573",
+        language: "Indonesian",
         location: "C1-B1-A2",
+        pages: 512,
+        publisher: "Pustaka Alvabet",
+        publishYear: 2021,
+        quantity: 2,
+        title: "Sapiens: Sejarah Ringkas Umat Manusia",
       },
       {
-        isbn: "9786022914471",
-        title: "Clean Code",
         author: "Robert C. Martin",
+        availableQuantity: 4,
+        category: "Technology",
+        coverImage:
+          "https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1436202607i/3735293.jpg",
+        description: "Panduan menulis kode yang bersih dan maintainable",
+        genre: ["Programming", "Software Engineering"],
+        isbn: "9786022914471",
+        language: "Indonesian",
+        location: "D1-A1-B3",
+        pages: 464,
         publisher: "Informatika",
         publishYear: 2018,
-        category: "Technology",
-        genre: ["Programming", "Software Engineering"],
-        language: "Indonesian",
-        pages: 464,
-        description: "Panduan menulis kode yang bersih dan maintainable",
         quantity: 4,
-        availableQuantity: 4,
-        location: "D1-A1-B3",
+        title: "Clean Code",
       },
     ];
 
     await prisma.book.createMany({ data: books });
     console.log("Books seeded successfully");
 
-    const hashedPassword = await bcrypt.hash("password123", 12);
-    const adminPassword = await bcrypt.hash("admin123", 12);
+    // const hashedPassword = await bcrypt.hash("password123", 12);
+    // const adminPassword = await bcrypt.hash("admin123", 12);
 
-    const users = [
-      {
-        name: "Ahmad Wijaya",
-        phoneNumber: "081234567890",
-        email: "ahmad.wijaya@email.com",
-        password: hashedPassword,
-        role: "USER" as const,
-      },
-      {
-        name: "Siti Nurhaliza",
-        phoneNumber: "082345678901",
-        email: "siti.nurhaliza@email.com",
-        password: hashedPassword,
-        role: "USER" as const,
-      },
-      {
-        name: "Budi Santoso",
-        phoneNumber: "083456789012",
-        email: "budi.santoso@email.com",
-        password: hashedPassword,
-        role: "USER" as const,
-      },
-      {
-        name: "Admin User",
-        phoneNumber: "081000000000",
-        email: "admin@naratama.com",
-        password: adminPassword,
-        role: "ADMIN" as const,
-      },
-      {
-        name: "Staff User",
-        phoneNumber: "081000000001",
-        email: "staff@naratama.com",
-        password: hashedPassword,
-        role: "STAFF" as const,
-      },
-    ];
+    // const users = [
+    //   {
+    //     email: "ahmad.wijaya@email.com",
+    //     name: "Ahmad Wijaya",
+    //     password: hashedPassword,
+    //     phoneNumber: "081234567890",
+    //     role: "USER" as const,
+    //   },
+    //   {
+    //     email: "siti.nurhaliza@email.com",
+    //     name: "Siti Nurhaliza",
+    //     password: hashedPassword,
+    //     phoneNumber: "082345678901",
+    //     role: "USER" as const,
+    //   },
+    //   {
+    //     email: "budi.santoso@email.com",
+    //     name: "Budi Santoso",
+    //     password: hashedPassword,
+    //     phoneNumber: "083456789012",
+    //     role: "USER" as const,
+    //   },
+    //   {
+    //     email: "admin@naratama.com",
+    //     name: "Admin User",
+    //     password: adminPassword,
+    //     phoneNumber: "081000000000",
+    //     role: "ADMIN" as const,
+    //   },
+    //   {
+    //     email: "staff@naratama.com",
+    //     name: "Staff User",
+    //     password: hashedPassword,
+    //     phoneNumber: "081000000001",
+    //     role: "STAFF" as const,
+    //   },
+    // ];
 
-    await prisma.user.createMany({ data: users });
-    console.log("Users seeded successfully");
+    // await prisma.user.createMany({ data: users });
+    // console.log("Users seeded successfully");
 
     const announcements = [
       {
-        title: "Buku Baru: Koleksi Teknologi Terkini",
         content:
           'Perpustakaan Naratama dengan bangga mengumumkan penambahan 15 buku teknologi terbaru, termasuk "Clean Architecture", "Design Patterns", dan "Machine Learning Basics". Buku-buku ini dapat dipinjam mulai hari ini.',
-        type: "NEW_BOOKS" as const,
-        priority: "MEDIUM" as const,
         createdBy: "Admin Perpustakaan",
+        priority: "MEDIUM" as const,
         targetAudience: "ALL" as const,
+        title: "Buku Baru: Koleksi Teknologi Terkini",
+        type: "NEW_BOOKS" as const,
       },
       {
-        title: "Grand Opening: Ruang Diskusi dan Pertemuan",
         content:
           "Mulai minggu depan, 7 ruang baru Perpustakaan Naratama resmi dibuka untuk umum! 5 ruang diskusi kecil (kapasitas 6-8 orang) dan 2 ruang pertemuan besar (kapasitas 25-30 orang). Pemesanan hanya di hari kerja dengan durasi minimal 1 jam. Hubungi kami untuk informasi harga dan reservasi.",
-        type: "EVENT" as const,
-        priority: "HIGH" as const,
         createdBy: "Manajer Operasional",
+        priority: "HIGH" as const,
         targetAudience: "ALL" as const,
+        title: "Grand Opening: Ruang Diskusi dan Pertemuan",
+        type: "EVENT" as const,
       },
       {
-        title: "Program Membership Baru",
         content:
           "Naratama kini menawarkan sistem membership opsional! Anggota dapat memilih tetap menggunakan sistem commitment fee Rp25.000 atau beralih ke membership dengan berbagai keuntungan. Silakan tanyakan ke petugas untuk detail lebih lanjut.",
-        type: "POLICY" as const,
-        priority: "MEDIUM" as const,
         createdBy: "Admin Perpustakaan",
+        priority: "MEDIUM" as const,
         targetAudience: "ALL" as const,
+        title: "Program Membership Baru",
+        type: "POLICY" as const,
       },
     ];
 
@@ -263,10 +271,11 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
+  .catch((e: unknown) => {
     console.error(e);
     process.exit(1);
   })
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   .finally(async () => {
     await prisma.$disconnect();
     console.log("Database connection closed");
