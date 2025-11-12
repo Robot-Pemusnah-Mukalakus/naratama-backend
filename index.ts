@@ -37,11 +37,14 @@ app.use(express.json());
 app.use(
   session({
     cookie: {
+      domain: process.env.COOKIE_DOMAIN ?? ".runsha.dev", // e.g., ".yourdomain.com" for subdomains
       httpOnly: true, // xss
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30d
-      sameSite: "lax", // CSRF
-      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // "none" requires secure: true
+      secure: process.env.NODE_ENV === "production", // true for HTTPS only
     },
+    name: "connect.sid", // explicit session cookie name
+    proxy: process.env.NODE_ENV === "production", // trust proxy in production (for HTTPS behind load balancer)
     resave: false,
     saveUninitialized: false,
     secret: process.env.SESSION_SECRET ?? "secretcuy",
