@@ -66,5 +66,17 @@ const parameter = {
 
 export const createTransactionMembership = async (req: any, res: any) => {
 
-  
+
 }
+
+
+export const checkTransactionStatus = async (req: any, res: any) => {
+  const { orderId } = req.params;
+  try {
+    const transactionStatus = await snap.transaction.status(orderId);
+    res.status(200).json(transactionStatus);
+  } catch (error) {
+    console.error("Midtrans status check error:", error);
+    res.status(500).json({ message: "Failed to check transaction status" });
+  }
+};
