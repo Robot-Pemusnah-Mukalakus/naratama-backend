@@ -2,55 +2,51 @@ import prisma from "#lib/prisma.js";
 
 import { generateTimestampCode } from "#utils/random.js";
 
-
 function generatePaymentNumber(): string {
   return `PAY-${generateTimestampCode()}`;
 }
 
-const midtransClient = require("midtrans-client");
+import midtransClient from "midtrans-client";
 export const snap = new midtransClient.Snap({
   isProduction: process.env.MIDTRANS_ENV === "production",
   serverKey: process.env.MIDTRANS_SERVER_KEY!,
 });
 
 export const createTransactionRoomBooking = async (req: any, res: any) => {
-const {
-  id
-} = req.body;
+  const { id } = req.body;
 
   const paymentNumber = generatePaymentNumber();
 
   const booking = await prisma.roomBooking.findUnique({
-  where: { id },
-  include: {
-    user: true,
-    room: true,
-  },
-});
-
-if (!booking) {
-  return res.status(404).json({ message: "Booking not found" });
-}
-const parameter = {
-  transaction_details: {
-    order_id: paymentNumber,
-    gross_amount: Math.round(booking.totalCost), // ensure integer
-  },
-  customer_details: {
-    first_name: booking.user?.name ?? "Guest",
-    email: booking.user?.email ?? "no-email@example.com",
-    phone: booking.user?.phoneNumber ?? "N/A",
-  },
-  item_details: [
-    {
-      id: booking.room.id,
-      price: Math.round(booking.room.hourlyRate), // ensure integer
-      quantity: booking.duration, // already a Float in hours
-      name: `Room ${booking.room.name} Booking`,
+    where: { id },
+    include: {
+      user: true,
+      room: true,
     },
-  ],
-};
+  });
 
+  if (!booking) {
+    return res.status(404).json({ message: "Booking not found" });
+  }
+  const parameter = {
+    transaction_details: {
+      order_id: paymentNumber,
+      gross_amount: Math.round(booking.totalCost), // ensure integer
+    },
+    customer_details: {
+      first_name: booking.user?.name ?? "Guest",
+      email: booking.user?.email ?? "no-email@example.com",
+      phone: booking.user?.phoneNumber ?? "N/A",
+    },
+    item_details: [
+      {
+        id: booking.room.id,
+        price: Math.round(booking.room.hourlyRate), // ensure integer
+        quantity: booking.duration, // already a Float in hours
+        name: `Room ${booking.room.name} Booking`,
+      },
+    ],
+  };
 
   try {
     const transaction = await snap.createTransaction(parameter);
@@ -62,7 +58,7 @@ const parameter = {
     console.error("Midtrans transaction error:", error);
     res.status(500).json({ message: "Failed to create transaction" });
   }
-}
+};
 
 export const createTransactionMembership = async (req: any, res: any) => {
   const { userId } = req.body;
@@ -80,7 +76,7 @@ export const createTransactionMembership = async (req: any, res: any) => {
     return res.status(404).json({ message: "User not found" });
   }
 
-  const membershipPrice = 100000; 
+  const membershipPrice = 100000;
 
   const parameter = {
     transaction_details: {
@@ -110,10 +106,11 @@ export const createTransactionMembership = async (req: any, res: any) => {
     });
   } catch (error) {
     console.error("Midtrans membership transaction error:", error);
-    res.status(500).json({ message: "Failed to create membership transaction" });
+    res
+      .status(500)
+      .json({ message: "Failed to create membership transaction" });
   }
-}
-
+};
 
 export const checkTransactionStatus = async (req: any, res: any) => {
   const { orderId } = req.params;
