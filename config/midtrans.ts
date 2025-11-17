@@ -63,52 +63,84 @@ export const createTransactionRoomBooking = async (req: any, res: any) => {
 export const createTransactionMembership = async (req: any, res: any) => {
   const { userId } = req.body;
 
-  const paymentNumber = generatePaymentNumber();
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      membership: true,
-    },
-  });
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+  if (!userId) {
+    return res.status(400).json({
+      message: "User ID is required",
+      success: false,
+    });
   }
 
-  const membershipPrice = 100000;
-
-  const parameter = {
-    transaction_details: {
-      order_id: paymentNumber,
-      gross_amount: membershipPrice,
-    },
-    customer_details: {
-      first_name: user.name ?? "Guest",
-      email: user.email ?? "no-email@example.com",
-      phone: user.phoneNumber ?? "N/A",
-    },
-    item_details: [
-      {
-        id: "MEMBERSHIP_30_DAYS",
-        price: membershipPrice,
-        quantity: 1,
-        name: "Naratama Premium Member",
-      },
-    ],
-  };
-
   try {
+    const paymentNumber = generatePaymentNumber();
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        membership: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    // Membership price (30 days)
+    const membershipPrice = 100000; // Adjust this price as needed
+
+    const parameter = {
+      transaction_details: {
+        order_id: paymentNumber,
+        gross_amount: membershipPrice,
+      },
+      customer_details: {
+        first_name: user.name ?? "Guest",
+        email: user.email ?? "no-email@example.com",
+        phone: user.phoneNumber ?? "N/A",
+      },
+      item_details: [
+        {
+          id: "MEMBERSHIP_30_DAYS",
+          price: membershipPrice,
+          quantity: 1,
+          name: "Library Membership - 30 Days",
+        },
+      ],
+    };
+
     const transaction = await snap.createTransaction(parameter);
+
+    // Validate response
+    if (!transaction || !transaction.token) {
+      throw new Error("Invalid response from payment gateway");
+    }
+
     res.status(200).json({
+      success: true,
       token: transaction.token,
       redirectUrl: transaction.redirect_url,
+      orderId: paymentNumber,
     });
   } catch (error) {
     console.error("Midtrans membership transaction error:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to create membership transaction" });
+
+    // Check if it's a Midtrans-specific error
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    const isMidtransError =
+      errorMessage.includes("Midtrans") ||
+      errorMessage.includes("payment") ||
+      errorMessage.includes("API");
+
+    res.status(500).json({
+      success: false,
+      message: isMidtransError
+        ? "Payment gateway error. Please try again later."
+        : "Failed to create membership transaction",
+      error: process.env.NODE_ENV === "development" ? errorMessage : undefined,
+    });
   }
 };
 
