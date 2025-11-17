@@ -9,6 +9,7 @@ import booksAdvancedRoutes from "#routes/books-advanced.js";
 import bookRoutes from "#routes/books.js";
 import roomRoutes from "#routes/rooms.js";
 import userRoutes from "#routes/users.js";
+import paymentRoutes from "#routes/payment.js";
 import bodyParser from "body-parser";
 import MongoStore from "connect-mongo";
 import cors from "cors";
@@ -68,6 +69,7 @@ app.use("/api/books", bookRoutes);
 app.use("/api/book-loans", bookLoanRoutes);
 app.use("/api/books-advanced", booksAdvancedRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use("/", (req, res) => {
   res.json({
