@@ -10,7 +10,7 @@ import { generateTimestampCode } from "../utils/random.js";
 
 const router = express.Router();
 
-function generateMembershipNumber(): string {
+export function generateMembershipNumber(): string {
   return `mbr-${generateTimestampCode()}`;
 }
 
@@ -299,14 +299,6 @@ router.put("/:id", checkAuth, async (req, res) => {
     });
   }
 });
-
-// POST /api/users/membership/payment
-router.post(
-  "/membership/payment",
-  checkAuth,
-  validateSchema(MembershipPaymentSchema),
-  createTransactionMembership
-);
 
 // PUT /api/users/:id/membership
 router.put("/:id/membership", checkStaff, async (req, res) => {

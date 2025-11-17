@@ -1,17 +1,16 @@
 import prisma from "#lib/prisma.js";
 
 import { generateTimestampCode } from "#utils/random.js";
+import { generateMembershipNumber } from "#routes/users.js";
+
+
+import midtransClient from "midtrans-client";
+import { check } from "zod";
 
 function generatePaymentNumber(): string {
   return `PAY-${generateTimestampCode()}`;
 }
 
-export function generateMembershipNumber(): string {
-  return `MEM-${generateTimestampCode()}`;
-}
-
-import midtransClient from "midtrans-client";
-import { check } from "zod";
 export const snap = new midtransClient.Snap({
   isProduction: process.env.MIDTRANS_ENV === "production",
   serverKey: process.env.MIDTRANS_SERVER_KEY!,
@@ -260,68 +259,96 @@ const { orderId, userId } = req.body;
       (transaction_status === "capture" && fraud_status === "accept") ||
       transaction_status === "settlement"
     ) {
-      console.log(`[PAYMENT] Payment successful for order: ${orderId}`);
-
-      // Fetch user with membership
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { membership: true },
-      });
-
-      if (!user) {
-        console.error(`[PAYMENT ERROR] User not found: ${userId}`);
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-
-      const now = new Date();
-      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      if (user.membership) {
-        // Extend or reactivate existing membership
-        const isActive = user.membership.isActive && user.membership.endDate > now;
-        const newEndDate = isActive
-          ? new Date(user.membership.endDate.getTime() + 30 * 24 * 60 * 60 * 1000)
-          : thirtyDaysFromNow;
-
-        await prisma.membership.update({
-          where: { id: user.membership.id },
-          data: {
-            endDate: newEndDate,
-            isActive: true,
-            startDate: isActive ? user.membership.startDate : now,
-          },
-        });
-
-        console.log(`[PAYMENT SUCCESS] Membership extended for user: ${userId}`);
-      } else {
-        // Create new membership
-        await prisma.membership.create({
-          data: {
-            userId,
-            membershipNumber: generateMembershipNumber(),
-            startDate: now,
-            endDate: thirtyDaysFromNow,
-            isActive: true,
-          },
-        });
-
-        console.log(`[PAYMENT SUCCESS] New membership created for user: ${userId}`);
-      }
-
-      // Fetch updated user
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { membership: true },
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: "Membership activated successfully",
-        data: updatedUser,
-      });
+        try {
+          const user = await prisma.user.findUnique({
+            include: {
+              membership: true,
+            },
+            where: { id: userId },
+          });
+      
+          if (!user) {
+            return res.status(404).json({
+              message: "User not found",
+              success: false,
+            });
+          }
+      
+          const now = new Date();
+          const thirtyDaysFromNow = new Date(
+            now.getTime() + 30 * 24 * 60 * 60 * 1000
+          );
+      
+          if (
+            user.membership &&
+            user.membership.isActive &&
+            user.membership.endDate > now
+          ) {
+            // Extend existing active membership by 30 days
+            const newEndDate = new Date(
+              user.membership.endDate.getTime() + 30 * 24 * 60 * 60 * 1000
+            );
+      
+            await prisma.membership.update({
+              data: {
+                endDate: newEndDate,
+              },
+              where: { id: user.membership.id },
+            });
+          } else {
+            // Create new membership or reactivate expired one
+            const membershipNumber =
+              user.membership?.membershipNumber ?? generateMembershipNumber();
+      
+            if (user.membership) {
+              // Reactivate existing membership
+              await prisma.membership.update({
+                data: {
+                  endDate: thirtyDaysFromNow,
+                  isActive: true,
+                  startDate: now,
+                },
+                where: { id: user.membership.id },
+              });
+            } else {
+              // Create new membership
+              await prisma.membership.create({
+                data: {
+                  endDate: thirtyDaysFromNow,
+                  isActive: true,
+                  membershipNumber,
+                  startDate: now,
+                  userId: user.id,
+                },
+              });
+            }
+          }
+      
+          // Get updated user with membership
+          const updatedUser = await prisma.user.findUnique({
+            include: {
+              membership: true,
+            },
+            where: { id: userId },
+          });
+      
+          res.json({
+            data: updatedUser,
+            message:
+              user.membership &&
+              user.membership.isActive &&
+              user.membership.endDate > now
+                ? "Membership extended by 30 days"
+                : "Membership activated for 30 days",
+            success: true,
+          });
+        } catch (error) {
+          res.status(400).json({
+            error: error instanceof Error ? error.message : "Unknown error",
+            message: "Failed to update membership status",
+            success: false,
+          });
+        }
     } else if (transaction_status === "pending") {
       console.log(`[PAYMENT] Payment still pending for order: ${orderId}`);
       return res.status(202).json({
