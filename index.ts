@@ -38,7 +38,7 @@ app.use(express.json());
 app.use(
   session({
     cookie: {
-      domain: process.env.COOKIE_DOMAIN ?? ".naratama.runsha.dev", // e.g., ".yourdomain.com" for subdomains
+      domain: process.env.COOKIE_DOMAIN ?? ".runsha.dev", // e.g., ".yourdomain.com" for subdomains
       httpOnly: true, // xss
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30d
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // "none" requires secure: true
