@@ -80,8 +80,7 @@ export const createTransactionMembership = async (req: any, res: any) => {
     return res.status(404).json({ message: "User not found" });
   }
 
-  // Membership price (30 days)
-  const membershipPrice = 100000; // Adjust this price as needed
+  const membershipPrice = 100000; 
 
   const parameter = {
     transaction_details: {
