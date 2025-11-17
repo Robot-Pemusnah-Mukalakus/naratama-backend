@@ -7,7 +7,7 @@ import { createTransactionMembership, createTransactionRoomBooking } from "#conf
 const router = express.Router();
 
 // POST /api/payment/membership
-router.get("/membership", createTransactionMembership);
-router.get("/room-booking", createTransactionRoomBooking);
+router.post("/membership", createTransactionMembership);
+router.post("/room-booking", createTransactionRoomBooking);
 
 export default router;
