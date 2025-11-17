@@ -34,6 +34,8 @@ model User {
   googleUser       GoogleUser?
 
   @@map("users")
+  commitmentFees CommitmentFee[]
+  activeLoansAndBookings ActiveLoansAndBookings[]
 }
 
 model GoogleUser {
@@ -132,6 +134,7 @@ model RoomBooking {
   room           Room          @relation(fields: [roomId], references: [id])
 
   @@map("roomBookings")
+  commitmentFees CommitmentFee[]
 }
 
 model BookLoan {
@@ -153,8 +156,10 @@ model BookLoan {
   // Relations
   user                  User       @relation(fields: [userId], references: [id])
   book                  Book       @relation(fields: [bookId], references: [id])
+  
 
   @@map("bookLoans")
+  commitmentFees CommitmentFee[]
 }
 
 model Announcement {
@@ -174,6 +179,35 @@ model Announcement {
   updatedAt      DateTime         @updatedAt
 
   @@map("announcements")
+}
+
+model CommitmentFee {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  loanId      String?   @db.ObjectId
+  bookingId   String?   @db.ObjectId
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id])
+  loan        BookLoan?   @relation(fields: [loanId], references: [id])
+  booking     RoomBooking? @relation(fields: [bookingId], references: [id])
+
+  @@map("commitmentFees")
+}
+
+model ActiveLoansAndBookings {
+  id  String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId @unique
+  activeLoanCount Int @default(0)
+  activeBookingCount Int @default(0)
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("activeLoansAndBookings")
 }
 
 // Enums
