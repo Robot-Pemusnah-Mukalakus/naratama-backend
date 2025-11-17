@@ -23,8 +23,13 @@ export const UpdateMembershipSchema = z.object({
   startDate: z.iso.datetime().or(z.date()).optional(),
 });
 
+export const MembershipPaymentSchema = z.object({
+  userId: mongoId,
+});
+
 // ============================
 // EXPORT TYPES
 // ============================
 export type CreateMembership = z.infer<typeof CreateMembershipSchema>;
 export type UpdateMembership = z.infer<typeof UpdateMembershipSchema>;
+export type MembershipPayment = z.infer<typeof MembershipPaymentSchema>;

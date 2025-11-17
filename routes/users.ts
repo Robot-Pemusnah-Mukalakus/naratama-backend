@@ -3,6 +3,9 @@ import express from "express";
 
 import prisma from "../lib/prisma.js";
 import { checkAdmin, checkAuth, checkStaff } from "../middleware/auth.js";
+import { validateSchema } from "../middleware/validation.js";
+import { createTransactionMembership } from "../config/midtrans.js";
+import { MembershipPaymentSchema } from "../validations/membership.js";
 import { generateTimestampCode } from "../utils/random.js";
 
 const router = express.Router();
@@ -296,6 +299,14 @@ router.put("/:id", checkAuth, async (req, res) => {
     });
   }
 });
+
+// POST /api/users/membership/payment
+router.post(
+  "/membership/payment",
+  checkAuth,
+  validateSchema(MembershipPaymentSchema),
+  createTransactionMembership
+);
 
 // PUT /api/users/:id/membership
 router.put("/:id/membership", checkStaff, async (req, res) => {
