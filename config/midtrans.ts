@@ -6,7 +6,12 @@ function generatePaymentNumber(): string {
   return `PAY-${generateTimestampCode()}`;
 }
 
+export function generateMembershipNumber(): string {
+  return `MEM-${generateTimestampCode()}`;
+}
+
 import midtransClient from "midtrans-client";
+import { check } from "zod";
 export const snap = new midtransClient.Snap({
   isProduction: process.env.MIDTRANS_ENV === "production",
   serverKey: process.env.MIDTRANS_SERVER_KEY!,
@@ -222,6 +227,126 @@ export const createTransactionMembership = async (req: any, res: any) => {
         ? "Payment gateway error. Please check your Midtrans configuration."
         : "Failed to create membership transaction",
       error: process.env.NODE_ENV === "development" ? errorMessage : undefined,
+    });
+  }
+};
+
+export const finishTransactionMembership = async (req: any, res: any) => {
+const { orderId, userId } = req.body;
+
+  console.log(`[PAYMENT] Verifying payment for order: ${orderId}, user: ${userId}`);
+
+  if (!orderId || !userId) {
+    console.error(`[PAYMENT ERROR] Missing orderId or userId`);
+    return res.status(400).json({
+      success: false,
+      message: "Order ID and User ID are required",
+    });
+  }
+
+  try {
+    // Verify transaction with Midtrans
+    const transactionStatus = await snap.transaction.status(orderId);
+
+    console.log(
+      `[PAYMENT] Transaction status for ${orderId}:`,
+      JSON.stringify(transactionStatus, null, 2)
+    );
+
+    const { transaction_status, fraud_status } = transactionStatus;
+
+    // Check if payment is successful
+    if (
+      (transaction_status === "capture" && fraud_status === "accept") ||
+      transaction_status === "settlement"
+    ) {
+      console.log(`[PAYMENT] Payment successful for order: ${orderId}`);
+
+      // Fetch user with membership
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { membership: true },
+      });
+
+      if (!user) {
+        console.error(`[PAYMENT ERROR] User not found: ${userId}`);
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const now = new Date();
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      if (user.membership) {
+        // Extend or reactivate existing membership
+        const isActive = user.membership.isActive && user.membership.endDate > now;
+        const newEndDate = isActive
+          ? new Date(user.membership.endDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+          : thirtyDaysFromNow;
+
+        await prisma.membership.update({
+          where: { id: user.membership.id },
+          data: {
+            endDate: newEndDate,
+            isActive: true,
+            startDate: isActive ? user.membership.startDate : now,
+          },
+        });
+
+        console.log(`[PAYMENT SUCCESS] Membership extended for user: ${userId}`);
+      } else {
+        // Create new membership
+        await prisma.membership.create({
+          data: {
+            userId,
+            membershipNumber: generateMembershipNumber(),
+            startDate: now,
+            endDate: thirtyDaysFromNow,
+            isActive: true,
+          },
+        });
+
+        console.log(`[PAYMENT SUCCESS] New membership created for user: ${userId}`);
+      }
+
+      // Fetch updated user
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { membership: true },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Membership activated successfully",
+        data: updatedUser,
+      });
+    } else if (transaction_status === "pending") {
+      console.log(`[PAYMENT] Payment still pending for order: ${orderId}`);
+      return res.status(202).json({
+        success: false,
+        message: "Payment is still pending",
+        status: transaction_status,
+      });
+    } else {
+      console.log(`[PAYMENT] Payment failed for order: ${orderId}, status: ${transaction_status}`);
+      return res.status(400).json({
+        success: false,
+        message: `Payment failed with status: ${transaction_status}`,
+        status: transaction_status,
+      });
+    }
+  } catch (error) {
+    console.error(`[PAYMENT ERROR] Failed to verify payment for order: ${orderId}`);
+    console.error(`[PAYMENT ERROR] Error details:`, error);
+    console.error(
+      `[PAYMENT ERROR] Stack trace:`,
+      error instanceof Error ? error.stack : "No stack trace"
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify payment",
     });
   }
 };
