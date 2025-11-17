@@ -25,8 +25,8 @@ export const GetBookLoansSchema = z.object({
 
 export const CreateBookLoanSchema = z.object({
   bookId: mongoId,
-  dueDate: z.iso.datetime().or(z.date()),
-  notes: z.string().max(300, "Notes too long").optional(),
+  // dueDate: z.iso.datetime().or(z.date()),
+  // notes: z.string().max(300, "Notes too long").optional(),
   userId: mongoId,
 });
 
