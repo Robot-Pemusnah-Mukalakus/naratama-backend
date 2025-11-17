@@ -65,8 +65,54 @@ const parameter = {
 }
 
 export const createTransactionMembership = async (req: any, res: any) => {
+  const { userId } = req.body;
 
+  const paymentNumber = generatePaymentNumber();
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      membership: true,
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  // Membership price (30 days)
+  const membershipPrice = 100000; // Adjust this price as needed
+
+  const parameter = {
+    transaction_details: {
+      order_id: paymentNumber,
+      gross_amount: membershipPrice,
+    },
+    customer_details: {
+      first_name: user.name ?? "Guest",
+      email: user.email ?? "no-email@example.com",
+      phone: user.phoneNumber ?? "N/A",
+    },
+    item_details: [
+      {
+        id: "MEMBERSHIP_30_DAYS",
+        price: membershipPrice,
+        quantity: 1,
+        name: "Naratama Premium Member",
+      },
+    ],
+  };
+
+  try {
+    const transaction = await snap.createTransaction(parameter);
+    res.status(200).json({
+      token: transaction.token,
+      redirectUrl: transaction.redirect_url,
+    });
+  } catch (error) {
+    console.error("Midtrans membership transaction error:", error);
+    res.status(500).json({ message: "Failed to create membership transaction" });
+  }
 }
 
 
