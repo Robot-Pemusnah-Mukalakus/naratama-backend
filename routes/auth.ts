@@ -85,7 +85,7 @@ router.get(
   (req, res) => {
     // After successful Google OAuth, redirect to frontend success page
     // The session cookie is already set by passport
-    res.redirect("http://localhost:3000/auth/success");
+    res.redirect(`https://${process.env.FRONTEND_URL}/auth/success`);
   }
 );
 
