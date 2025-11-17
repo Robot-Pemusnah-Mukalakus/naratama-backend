@@ -192,7 +192,6 @@ router.get(
 router.post(
   "/bookings",
   validateSchema(CreateRoomBookingSchema),
-  checkStaffOrAdmin,
   async (req, res) => {
     try {
       const {

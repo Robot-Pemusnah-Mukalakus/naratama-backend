@@ -79,25 +79,13 @@ router.get(
 router.get(
   "/google/callback",
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  passport.authenticate("google", { failureRedirect: "/login" }),
+  passport.authenticate("google", {
+    failureRedirect: "/auth/login?error=Authentication%20failed",
+  }),
   (req, res) => {
-    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-    const user = req.user as SessionUser;
-
-    // Return JSON response like the login endpoint
-    return res.json({
-      message: "Login successful",
-      success: true,
-      user: {
-        email: user.email,
-        id: user.id,
-        lastlogin: new Date(user.lastLogin ?? Date.now()),
-        membership: user.membership,
-        name: user.name,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
-      },
-    });
+    // After successful Google OAuth, redirect to frontend success page
+    // The session cookie is already set by passport
+    res.redirect("http://localhost:3000/auth/success");
   }
 );
 
