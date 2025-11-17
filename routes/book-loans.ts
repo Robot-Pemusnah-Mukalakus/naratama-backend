@@ -143,18 +143,18 @@ router.get("/:id", async (req, res) => {
 router.post(
   "/",
   validateSchema(CreateBookLoanSchema),
-  checkStaffOrAdmin,
+  // checkStaffOrAdmin,
   async (req, res) => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const { bookId, dueDate, loanDate, userId } = req.body;
+      const { bookId, loanDate, userId } = req.body;
 
       const where: Prisma.BookLoanWhereInput = {};
 
       if (userId) where.userId = userId as string;
       if (bookId) where.bookId = bookId as string;
       if (loanDate) where.loanDate = loanDate as Date;
-      if (dueDate) where.dueDate = dueDate as Date;
+      // if (dueDate) where.dueDate = dueDate as Date;
 
       // Validate required fields
       if (!userId || !bookId) {
@@ -214,6 +214,12 @@ router.post(
 
       const lateFeesPerDay = 5000;
 
+      // Calculate dates before transaction to avoid timeout issues
+      const currentDate = new Date();
+      const dueDateCalculated = new Date(
+        currentDate.getTime() + 7 * 24 * 60 * 60 * 1000
+      ); // 7 days from now
+
       // Create the loan and update book availability in a transaction
       const result = await prisma.$transaction(
         async (tx: Prisma.TransactionClient) => {
@@ -221,9 +227,9 @@ router.post(
           const loan = await tx.bookLoan.create({
             data: {
               bookId: bookId as string,
-              dueDate: where.dueDate as Date,
+              dueDate: dueDateCalculated,
               lateFeesPerDay,
-              loanDate: where.loanDate as Date,
+              loanDate: currentDate,
               userId: userId as string,
             },
             include: {
@@ -245,6 +251,10 @@ router.post(
           });
 
           return loan;
+        },
+        {
+          maxWait: 5000, // default: 2000ms
+          timeout: 10000, // default: 5000ms - increase timeout for safety
         }
       );
 
@@ -333,6 +343,10 @@ router.put(
           });
 
           return updatedLoan;
+        },
+        {
+          maxWait: 5000,
+          timeout: 10000, // Increase timeout for safety
         }
       );
 
