@@ -13,7 +13,7 @@ router.post("/membership/create", createTransactionMembership);
 router.post("/membership/finish", finishTransactionMembership);
 
 // Room booking payment routes
-router.post("/room-booking/finish", finishTransactionRoomBooking);
+router.post("/room/finish", finishTransactionRoomBooking);
 
 // Transaction status check
 router.get("/status/:orderId", checkTransactionStatus);
