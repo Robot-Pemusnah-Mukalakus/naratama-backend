@@ -3,6 +3,7 @@ import {
   createTransactionMembership,
   finishTransactionMembership,
   finishTransactionRoomBooking,
+  finishTransactionBookLoan,
   checkTransactionStatus,
 } from "../config/midtrans.js";
 
@@ -14,6 +15,10 @@ router.post("/membership/finish", finishTransactionMembership);
 
 // Room booking payment routes
 router.post("/room/finish", finishTransactionRoomBooking);
+
+// Book loan payment routes
+router.post("/book/finish", finishTransactionBookLoan);
+
 
 // Transaction status check
 router.get("/status/:orderId", checkTransactionStatus);

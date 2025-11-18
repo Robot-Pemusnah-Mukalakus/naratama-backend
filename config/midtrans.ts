@@ -14,6 +14,7 @@ function generatePaymentNumber(): string {
 export const snap = new midtransClient.Snap({
   isProduction: process.env.MIDTRANS_ENV === "production",
   serverKey: process.env.MIDTRANS_SERVER_KEY!,
+  clientKey: process.env.MIDTRANS_CLIENT_KEY!,
 });
 
 // export const createTransactionRoomBooking = async (req: any, res: any) => {
@@ -579,3 +580,161 @@ export async function createTransactionRoomBooking({
     orderId,
   };
 }
+
+export async function createTransactionBookLoan({
+  amount,
+  loanId,
+  userEmail,
+  userName,
+  userPhone,
+}: {
+  amount: number;
+  loanId: string;
+  userEmail?: string;
+  userName: string;
+  userPhone: string;
+}) {
+  // Order ID format: BL-MYCODE-<shortLoanId>
+  const orderId = `BL-${generateTimestampCode()}-${loanId.substring(0, 8)}`;
+
+  const parameter = {
+    transaction_details: {
+      order_id: orderId,
+      gross_amount: amount,
+    },
+    customer_details: {
+      first_name: userName,
+      email: userEmail,
+      phone: userPhone,
+    },
+    item_details: [
+      {
+        id: "commitment-fee",
+        price: USER_LIMITS.COMMITMENT_FEE_BOOK_LOAN,
+        quantity: 1,
+        name: "Book Loan Commitment Fee",
+      },
+      {
+        id: loanId,
+        price: amount - USER_LIMITS.COMMITMENT_FEE_BOOK_LOAN,
+        quantity: 1,
+        name: "Book Loan Fee",
+      },
+    ],
+    custom_field1: loanId,
+    custom_field2: "BOOK_LOAN",
+  };
+
+  const transaction = await snap.createTransaction(parameter);
+
+  return {
+    ...transaction,
+    orderId,
+  };
+}
+
+export const finishTransactionBookLoan = async (req: any, res: any) => {
+  const { orderId, loanId } = req.body;
+
+  console.log(
+    `[PAYMENT] Verifying book loan payment for order: ${orderId}, loan: ${loanId}`
+  );
+
+  if (!orderId || !loanId) {
+    console.error(`[PAYMENT ERROR] Missing orderId or loanId`);
+    return res.status(400).json({
+      success: false,
+      message: "Order ID and Loan ID are required",
+    });
+  }
+
+  try {
+    // Verify transaction with Midtrans
+    const transactionStatus = await snap.transaction.status(orderId);
+
+    console.log(
+      `[PAYMENT] Transaction status for ${orderId}:`,
+      JSON.stringify(transactionStatus, null, 2)
+    );
+
+    const { transaction_status, fraud_status } = transactionStatus;
+
+    // Check if payment is successful
+    if (
+      (transaction_status === "capture" && fraud_status === "accept") ||
+      transaction_status === "settlement"
+    ) {
+      console.log(`[PAYMENT SUCCESS] Payment successful for order: ${orderId}`);
+
+      // Update the loan to confirm activation
+      const updatedLoan = await prisma.bookLoan.update({
+        where: { id: loanId },
+        data: {
+          status: "ACTIVE",
+        },
+        include: {
+          book: {
+            select: { author: true, isbn: true, title: true },
+          },
+          user: {
+            select: { email: true, name: true, phoneNumber: true },
+          },
+        },
+      });
+
+      console.log(`[PAYMENT SUCCESS] Book loan activated: ${loanId}`);
+
+      return res.json({
+        data: updatedLoan,
+        message: "Payment successful. Book loan activated.",
+        success: true,
+      });
+    }
+
+    // If still pending
+    if (transaction_status === "pending") {
+      console.log(`[PAYMENT] Payment still pending for order: ${orderId}`);
+      return res.status(202).json({
+        success: false,
+        message: "Payment is still pending",
+        status: transaction_status,
+      });
+    }
+
+    // Payment failed or canceled
+    console.log(
+      `[PAYMENT] Payment failed for order: ${orderId}, status: ${transaction_status}`
+    );
+
+    // Cancel the pending loan
+    await prisma.bookLoan.delete({
+      where: { id: loanId },
+    });
+
+    return res.status(400).json({
+      success: false,
+      message: `Payment failed with status: ${transaction_status}`,
+      status: transaction_status,
+    });
+  } catch (error) {
+    console.error(
+      `[PAYMENT ERROR] Failed to verify payment for order: ${orderId}`
+    );
+    console.error(`[PAYMENT ERROR] Error details:`, error);
+    console.error(
+      `[PAYMENT ERROR] Stack trace:`,
+      error instanceof Error ? error.stack : "No stack trace"
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify payment",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error instanceof Error
+            ? error.message
+            : "Unknown error"
+          : undefined,
+    });
+  }
+};
