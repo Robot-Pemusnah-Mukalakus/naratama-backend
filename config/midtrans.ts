@@ -2,7 +2,7 @@ import prisma from "#lib/prisma.js";
 
 import { generateTimestampCode } from "#utils/random.js";
 import { generateMembershipNumber } from "#routes/users.js";
-
+import { USER_LIMITS } from "../config/limits.js";
 
 import midtransClient from "midtrans-client";
 import { check } from "zod";
@@ -16,89 +16,89 @@ export const snap = new midtransClient.Snap({
   serverKey: process.env.MIDTRANS_SERVER_KEY!,
 });
 
-export const createTransactionRoomBooking = async (req: any, res: any) => {
-  const { id } = req.body;
+// export const createTransactionRoomBooking = async (req: any, res: any) => {
+//   const { id } = req.body;
 
-  console.log(
-    `[PAYMENT] Creating room booking transaction for booking ID: ${id}`
-  );
+//   console.log(
+//     `[PAYMENT] Creating room booking transaction for booking ID: ${id}`
+//   );
 
-  const paymentNumber = generatePaymentNumber();
-  console.log(`[PAYMENT] Generated payment number: ${paymentNumber}`);
+//   const paymentNumber = generatePaymentNumber();
+//   console.log(`[PAYMENT] Generated payment number: ${paymentNumber}`);
 
-  try {
-    const booking = await prisma.roomBooking.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        room: true,
-      },
-    });
+//   try {
+//     const booking = await prisma.roomBooking.findUnique({
+//       where: { id },
+//       include: {
+//         user: true,
+//         room: true,
+//       },
+//     });
 
-    if (!booking) {
-      console.error(`[PAYMENT ERROR] Booking not found for ID: ${id}`);
-      return res.status(404).json({ message: "Booking not found" });
-    }
+//     if (!booking) {
+//       console.error(`[PAYMENT ERROR] Booking not found for ID: ${id}`);
+//       return res.status(404).json({ message: "Booking not found" });
+//     }
 
-    console.log(
-      `[PAYMENT] Found booking: ${JSON.stringify({ id: booking.id, userId: booking.userId, roomId: booking.roomId, totalCost: booking.totalCost })}`
-    );
+//     console.log(
+//       `[PAYMENT] Found booking: ${JSON.stringify({ id: booking.id, userId: booking.userId, roomId: booking.roomId, totalCost: booking.totalCost })}`
+//     );
 
-    const parameter = {
-      transaction_details: {
-        order_id: paymentNumber,
-        gross_amount: Math.round(booking.totalCost),
-      },
-      customer_details: {
-        first_name: booking.user?.name ?? "Guest",
-        email: booking.user?.email ?? "no-email@example.com",
-        phone: booking.user?.phoneNumber ?? "N/A",
-      },
-      item_details: [
-        {
-          id: booking.room.id,
-          price: Math.round(booking.room.hourlyRate),
-          quantity: booking.duration,
-          name: `Room ${booking.room.name} Booking`,
-        },
-      ],
-    };
+//     const parameter = {
+//       transaction_details: {
+//         order_id: paymentNumber,
+//         gross_amount: Math.round(booking.totalCost),
+//       },
+//       customer_details: {
+//         first_name: booking.user?.name ?? "Guest",
+//         email: booking.user?.email ?? "no-email@example.com",
+//         phone: booking.user?.phoneNumber ?? "N/A",
+//       },
+//       item_details: [
+//         {
+//           id: booking.room.id,
+//           price: Math.round(booking.room.hourlyRate),
+//           quantity: booking.duration,
+//           name: `Room ${booking.room.name} Booking`,
+//         },
+//       ],
+//     };
 
-    console.log(
-      `[PAYMENT] Midtrans request parameters: ${JSON.stringify(parameter, null, 2)}`
-    );
+//     console.log(
+//       `[PAYMENT] Midtrans request parameters: ${JSON.stringify(parameter, null, 2)}`
+//     );
 
-    const transaction = await snap.createTransaction(parameter);
+//     const transaction = await snap.createTransaction(parameter);
 
-    console.log(
-      `[PAYMENT SUCCESS] Room booking transaction created: ${JSON.stringify({ orderId: paymentNumber, token: transaction.token })}`
-    );
+//     console.log(
+//       `[PAYMENT SUCCESS] Room booking transaction created: ${JSON.stringify({ orderId: paymentNumber, token: transaction.token })}`
+//     );
 
-    return res.status(200).json({
-      token: transaction.token,
-      redirectUrl: transaction.redirect_url,
-    });
-  } catch (error) {
-    console.error(
-      `[PAYMENT ERROR] Room booking transaction failed for booking ID: ${id}`
-    );
-    console.error(`[PAYMENT ERROR] Error details:`, error);
-    console.error(
-      `[PAYMENT ERROR] Stack trace:`,
-      error instanceof Error ? error.stack : "No stack trace"
-    );
+//     return res.status(200).json({
+//       token: transaction.token,
+//       redirectUrl: transaction.redirect_url,
+//     });
+//   } catch (error) {
+//     console.error(
+//       `[PAYMENT ERROR] Room booking transaction failed for booking ID: ${id}`
+//     );
+//     console.error(`[PAYMENT ERROR] Error details:`, error);
+//     console.error(
+//       `[PAYMENT ERROR] Stack trace:`,
+//       error instanceof Error ? error.stack : "No stack trace"
+//     );
 
-    return res.status(500).json({
-      message: "Failed to create transaction",
-      error:
-        process.env.NODE_ENV === "development"
-          ? error instanceof Error
-            ? error.message
-            : "Unknown error"
-          : undefined,
-    });
-  }
-};
+//     return res.status(500).json({
+//       message: "Failed to create transaction",
+//       error:
+//         process.env.NODE_ENV === "development"
+//           ? error instanceof Error
+//             ? error.message
+//             : "Unknown error"
+//           : undefined,
+//     });
+//   }
+// };
 
 export const createTransactionMembership = async (req: any, res: any) => {
   const { userId } = req.body;
@@ -231,9 +231,11 @@ export const createTransactionMembership = async (req: any, res: any) => {
 };
 
 export const finishTransactionMembership = async (req: any, res: any) => {
-const { orderId, userId } = req.body;
+  const { orderId, userId } = req.body;
 
-  console.log(`[PAYMENT] Verifying payment for order: ${orderId}, user: ${userId}`);
+  console.log(
+    `[PAYMENT] Verifying payment for order: ${orderId}, user: ${userId}`
+  );
 
   if (!orderId || !userId) {
     console.error(`[PAYMENT ERROR] Missing orderId or userId`);
@@ -259,96 +261,96 @@ const { orderId, userId } = req.body;
       (transaction_status === "capture" && fraud_status === "accept") ||
       transaction_status === "settlement"
     ) {
-        try {
-          const user = await prisma.user.findUnique({
-            include: {
-              membership: true,
-            },
-            where: { id: userId },
+      try {
+        const user = await prisma.user.findUnique({
+          include: {
+            membership: true,
+          },
+          where: { id: userId },
+        });
+
+        if (!user) {
+          return res.status(404).json({
+            message: "User not found",
+            success: false,
           });
-      
-          if (!user) {
-            return res.status(404).json({
-              message: "User not found",
-              success: false,
-            });
-          }
-      
-          const now = new Date();
-          const thirtyDaysFromNow = new Date(
-            now.getTime() + 30 * 24 * 60 * 60 * 1000
+        }
+
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(
+          now.getTime() + 30 * 24 * 60 * 60 * 1000
+        );
+
+        if (
+          user.membership &&
+          user.membership.isActive &&
+          user.membership.endDate > now
+        ) {
+          // Extend existing active membership by 30 days
+          const newEndDate = new Date(
+            user.membership.endDate.getTime() + 30 * 24 * 60 * 60 * 1000
           );
-      
-          if (
-            user.membership &&
-            user.membership.isActive &&
-            user.membership.endDate > now
-          ) {
-            // Extend existing active membership by 30 days
-            const newEndDate = new Date(
-              user.membership.endDate.getTime() + 30 * 24 * 60 * 60 * 1000
-            );
-      
+
+          await prisma.membership.update({
+            data: {
+              endDate: newEndDate,
+            },
+            where: { id: user.membership.id },
+          });
+        } else {
+          // Create new membership or reactivate expired one
+          const membershipNumber =
+            user.membership?.membershipNumber ?? generateMembershipNumber();
+
+          if (user.membership) {
+            // Reactivate existing membership
             await prisma.membership.update({
               data: {
-                endDate: newEndDate,
+                endDate: thirtyDaysFromNow,
+                isActive: true,
+                startDate: now,
               },
               where: { id: user.membership.id },
             });
           } else {
-            // Create new membership or reactivate expired one
-            const membershipNumber =
-              user.membership?.membershipNumber ?? generateMembershipNumber();
-      
-            if (user.membership) {
-              // Reactivate existing membership
-              await prisma.membership.update({
-                data: {
-                  endDate: thirtyDaysFromNow,
-                  isActive: true,
-                  startDate: now,
-                },
-                where: { id: user.membership.id },
-              });
-            } else {
-              // Create new membership
-              await prisma.membership.create({
-                data: {
-                  endDate: thirtyDaysFromNow,
-                  isActive: true,
-                  membershipNumber,
-                  startDate: now,
-                  userId: user.id,
-                },
-              });
-            }
+            // Create new membership
+            await prisma.membership.create({
+              data: {
+                endDate: thirtyDaysFromNow,
+                isActive: true,
+                membershipNumber,
+                startDate: now,
+                userId: user.id,
+              },
+            });
           }
-      
-          // Get updated user with membership
-          const updatedUser = await prisma.user.findUnique({
-            include: {
-              membership: true,
-            },
-            where: { id: userId },
-          });
-      
-          res.json({
-            data: updatedUser,
-            message:
-              user.membership &&
-              user.membership.isActive &&
-              user.membership.endDate > now
-                ? "Membership extended by 30 days"
-                : "Membership activated for 30 days",
-            success: true,
-          });
-        } catch (error) {
-          res.status(400).json({
-            error: error instanceof Error ? error.message : "Unknown error",
-            message: "Failed to update membership status",
-            success: false,
-          });
         }
+
+        // Get updated user with membership
+        const updatedUser = await prisma.user.findUnique({
+          include: {
+            membership: true,
+          },
+          where: { id: userId },
+        });
+
+        res.json({
+          data: updatedUser,
+          message:
+            user.membership &&
+            user.membership.isActive &&
+            user.membership.endDate > now
+              ? "Membership extended by 30 days"
+              : "Membership activated for 30 days",
+          success: true,
+        });
+      } catch (error) {
+        res.status(400).json({
+          error: error instanceof Error ? error.message : "Unknown error",
+          message: "Failed to update membership status",
+          success: false,
+        });
+      }
     } else if (transaction_status === "pending") {
       console.log(`[PAYMENT] Payment still pending for order: ${orderId}`);
       return res.status(202).json({
@@ -357,7 +359,9 @@ const { orderId, userId } = req.body;
         status: transaction_status,
       });
     } else {
-      console.log(`[PAYMENT] Payment failed for order: ${orderId}, status: ${transaction_status}`);
+      console.log(
+        `[PAYMENT] Payment failed for order: ${orderId}, status: ${transaction_status}`
+      );
       return res.status(400).json({
         success: false,
         message: `Payment failed with status: ${transaction_status}`,
@@ -365,7 +369,9 @@ const { orderId, userId } = req.body;
       });
     }
   } catch (error) {
-    console.error(`[PAYMENT ERROR] Failed to verify payment for order: ${orderId}`);
+    console.error(
+      `[PAYMENT ERROR] Failed to verify payment for order: ${orderId}`
+    );
     console.error(`[PAYMENT ERROR] Error details:`, error);
     console.error(
       `[PAYMENT ERROR] Stack trace:`,
@@ -374,6 +380,116 @@ const { orderId, userId } = req.body;
     return res.status(500).json({
       success: false,
       message: "Failed to verify payment",
+    });
+  }
+};
+
+export const finishTransactionRoomBooking = async (req: any, res: any) => {
+  const { orderId, bookingId } = req.body;
+
+  console.log(
+    `[PAYMENT] Verifying room booking payment for order: ${orderId}, booking: ${bookingId}`
+  );
+
+  if (!orderId || !bookingId) {
+    console.error(`[PAYMENT ERROR] Missing orderId or bookingId`);
+    return res.status(400).json({
+      success: false,
+      message: "Order ID and Booking ID are required",
+    });
+  }
+
+  try {
+    // Verify transaction with Midtrans
+    const transactionStatus = await snap.transaction.status(orderId);
+
+    console.log(
+      `[PAYMENT] Transaction status for ${orderId}:`,
+      JSON.stringify(transactionStatus, null, 2)
+    );
+
+    const { transaction_status, fraud_status } = transactionStatus;
+
+    // Check if payment is successful
+    if (
+      (transaction_status === "capture" && fraud_status === "accept") ||
+      transaction_status === "settlement"
+    ) {
+      console.log(`[PAYMENT SUCCESS] Payment successful for order: ${orderId}`);
+
+      // Update booking status
+      const updatedBooking = await prisma.roomBooking.update({
+        where: { id: bookingId },
+        data: {
+          paymentStatus: "PAID",
+          status: "CONFIRMED",
+        },
+        include: {
+          room: {
+            select: {
+              hourlyRate: true,
+              name: true,
+              roomNumber: true,
+              type: true,
+            },
+          },
+          user: {
+            select: { email: true, name: true, phoneNumber: true },
+          },
+        },
+      });
+
+      console.log(`[PAYMENT SUCCESS] Booking confirmed: ${bookingId}`);
+
+      return res.json({
+        data: updatedBooking,
+        message: "Payment successful. Room booking confirmed.",
+        success: true,
+      });
+    } else if (transaction_status === "pending") {
+      console.log(`[PAYMENT] Payment still pending for order: ${orderId}`);
+      return res.status(202).json({
+        success: false,
+        message: "Payment is still pending",
+        status: transaction_status,
+      });
+    } else {
+      console.log(
+        `[PAYMENT] Payment failed for order: ${orderId}, status: ${transaction_status}`
+      );
+
+      // Cancel the booking
+      await prisma.roomBooking.update({
+        where: { id: bookingId },
+        data: {
+          status: "CANCELLED",
+        },
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: `Payment failed with status: ${transaction_status}`,
+        status: transaction_status,
+      });
+    }
+  } catch (error) {
+    console.error(
+      `[PAYMENT ERROR] Failed to verify payment for order: ${orderId}`
+    );
+    console.error(`[PAYMENT ERROR] Error details:`, error);
+    console.error(
+      `[PAYMENT ERROR] Stack trace:`,
+      error instanceof Error ? error.stack : "No stack trace"
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify payment",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error instanceof Error
+            ? error.message
+            : "Unknown error"
+          : undefined,
     });
   }
 };
@@ -412,3 +528,54 @@ export const checkTransactionStatus = async (req: any, res: any) => {
     });
   }
 };
+
+export async function createTransactionRoomBooking({
+  amount,
+  bookingId,
+  userEmail,
+  userName,
+  userPhone,
+}: {
+  amount: number;
+  bookingId: string;
+  userEmail?: string;
+  userName: string;
+  userPhone: string;
+}) {
+  const orderId = `RB-${generateTimestampCode()}-${bookingId.substring(0, 8)}`;
+
+  const parameter = {
+    transaction_details: {
+      order_id: orderId,
+      gross_amount: amount,
+    },
+    customer_details: {
+      first_name: userName,
+      email: userEmail,
+      phone: userPhone,
+    },
+    item_details: [
+      {
+        id: "commitment-fee",
+        price: USER_LIMITS.COMMITMENT_FEE_ROOM_BOOKING,
+        quantity: 1,
+        name: "Room Booking Commitment Fee",
+      },
+      {
+        id: bookingId,
+        price: amount - USER_LIMITS.COMMITMENT_FEE_ROOM_BOOKING,
+        quantity: 1,
+        name: "Room Booking Fee",
+      },
+    ],
+    custom_field1: bookingId,
+    custom_field2: "ROOM_BOOKING",
+  };
+
+  const transaction = await snap.createTransaction(parameter);
+
+  return {
+    ...transaction,
+    orderId,
+  };
+}

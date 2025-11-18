@@ -1,14 +1,21 @@
-import { Prisma } from "@prisma/client";
 import express from "express";
-
-import prisma from "../lib/prisma.js";
-import { createTransactionMembership, createTransactionRoomBooking, finishTransactionMembership } from "#config/midtrans.js";
+import {
+  createTransactionMembership,
+  finishTransactionMembership,
+  finishTransactionRoomBooking,
+  checkTransactionStatus,
+} from "../config/midtrans.js";
 
 const router = express.Router();
 
-// POST /api/payment/membership
-router.post("/membership", createTransactionMembership);
+// Membership payment routes
+router.post("/membership/create", createTransactionMembership);
 router.post("/membership/finish", finishTransactionMembership);
-router.post("/room-booking", createTransactionRoomBooking);
+
+// Room booking payment routes
+router.post("/room-booking/finish", finishTransactionRoomBooking);
+
+// Transaction status check
+router.get("/status/:orderId", checkTransactionStatus);
 
 export default router;
