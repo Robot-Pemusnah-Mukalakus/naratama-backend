@@ -63,6 +63,7 @@ passport.use(
           email: user.email,
           id: user.id,
           isActive: user.isActive,
+          isEmailVerified: user.isEmailVerified,
           isOauthUser: user.isOauthUser,
           lastLogin: new Date(),
           membership: user.membership,
@@ -109,9 +110,10 @@ passport.use(
         user ??= await prisma.user.create({
           data: {
             email,
+            isEmailVerified: true, // OAuth users are pre-verified
             isOauthUser: true,
             name: profile.displayName ?? "Unnamed User",
-            password: "", // leave blank since OAuth user doesn’t use local password
+            password: "", // leave blank since OAuth user doesn't use local password
             phoneNumber: "",
           },
           include: { membership: true },
@@ -136,6 +138,7 @@ passport.use(
           email: user.email,
           id: user.id,
           isActive: user.isActive,
+          isEmailVerified: true, // OAuth users are pre-verified
           isOauthUser: user.isOauthUser,
           lastLogin: new Date(user.lastLogin ?? Date.now()),
           membership: user.membership,
@@ -183,6 +186,7 @@ passport.deserializeUser(async (id: string, done) => {
       email: user.email,
       id: user.id,
       isActive: user.isActive,
+      isEmailVerified: user.isEmailVerified,
       isOauthUser: user.isOauthUser,
       lastLogin: new Date(user.lastLogin ?? Date.now()),
       membership: user.membership,

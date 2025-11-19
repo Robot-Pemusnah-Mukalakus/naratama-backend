@@ -6,7 +6,7 @@ import { NextFunction, Request, Response } from "express";
 // User interface for sessions
 export type SessionUser = Omit<
   UserDBType,
-  "createdAt" | "joinDate" | "password" | "updatedAt"
+  "createdAt" | "joinDate" | "otp" | "otpExpiry" | "password" | "updatedAt"
 > & {
   membership: Membership | null;
 };

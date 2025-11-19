@@ -11,11 +11,13 @@ import prisma from "../lib/prisma.js";
 import { checkAuth } from "../middleware/auth.js";
 import { SessionUser } from "../middleware/auth.js";
 import { validateSchema } from "../middleware/validation.js";
+import { generateOTP, getOTPExpiry, sendOTPEmail } from "../utils/otp.js";
 import {
   ChangePasswordSchema,
   LoginSchema,
   RegisterSchema,
   SetPasswordSchema,
+  VerifyOTPSchema,
 } from "../validations/index.js";
 
 const router = express.Router();
@@ -95,72 +97,228 @@ router.post("/register", validateSchema(RegisterSchema), async (req, res) => {
     const { email, name, password, phoneNumber } =
       req.body as Prisma.UserCreateInput;
 
-    // if user already exists
+    // Check if user already exists and is verified
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ email, phoneNumber }].filter(Boolean),
+        OR: [{ email }, { phoneNumber }].filter(Boolean),
       },
     });
 
-    if (existingUser) {
+    if (existingUser && existingUser.isEmailVerified) {
       return res.status(409).json({
         message: "User with this phone number or email already exists",
         success: false,
       });
     }
 
-    // hash password
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
+
+    // Hash password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // create user
-    const newUser = await prisma.user.create({
-      data: {
-        email: email,
-        isActive: true,
-        name,
-        password: hashedPassword,
-        phoneNumber,
-      },
-      include: {
-        membership: true,
-      },
-    });
-
-    const now = new Date();
-
-    const user: Express.User = {
-      email: newUser.email,
-      id: newUser.id,
-      isActive: newUser.isActive,
-      lastLogin: now,
-      membership: newUser.membership,
-      name: newUser.name,
-      phoneNumber: newUser.phoneNumber,
-      role: newUser.role,
-    };
-
-    // Auto-login after registration
-    req.logIn(user, (err) => {
-      if (err) {
-        return res.status(201).json({
-          message: "User registered successfully, but auto-login failed",
-          success: true,
-          user,
-        });
-      }
-
-      return res.status(201).json({
-        message: "User registered and logged in successfully",
-        success: true,
-        user,
+    if (existingUser && !existingUser.isEmailVerified) {
+      // Update existing unverified user with new OTP
+      await prisma.user.update({
+        data: {
+          name,
+          otp,
+          otpExpiry,
+          password: hashedPassword,
+          phoneNumber,
+        },
+        where: { id: existingUser.id },
       });
+    } else {
+      // Create new user with OTP (not verified yet)
+      await prisma.user.create({
+        data: {
+          email,
+          isActive: false, // Inactive until verified
+          isEmailVerified: false,
+          name,
+          otp,
+          otpExpiry,
+          password: hashedPassword,
+          phoneNumber: phoneNumber ?? "",
+        },
+      });
+    }
+
+    // Send OTP email
+    await sendOTPEmail(email, otp, name);
+
+    res.status(200).json({
+      message:
+        "Registration initiated. Please check your email for the OTP code.",
+      success: true,
     });
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({
       error: process.env.NODE_ENV === "development" ? error : undefined,
       message: "Registration failed",
+      success: false,
+    });
+  }
+});
+
+// POST /api/auth/verify-otp
+router.post(
+  "/verify-otp",
+  validateSchema(VerifyOTPSchema),
+  async (req, res) => {
+    try {
+      const { email, otp } = req.body as { email: string; otp: string };
+
+      // Find user with matching email
+      const user = await prisma.user.findUnique({
+        include: { membership: true },
+        where: { email },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
+          success: false,
+        });
+      }
+
+      if (user.isEmailVerified) {
+        return res.status(400).json({
+          message: "Email already verified. Please login.",
+          success: false,
+        });
+      }
+
+      // Check if OTP matches
+      if (user.otp !== otp) {
+        return res.status(401).json({
+          message: "Invalid OTP code",
+          success: false,
+        });
+      }
+
+      // Check if OTP is expired
+      if (!user.otpExpiry || new Date() > user.otpExpiry) {
+        return res.status(401).json({
+          message: "OTP code has expired. Please request a new one.",
+          success: false,
+        });
+      }
+
+      // Update user: mark as verified and active, clear OTP
+      const verifiedUser = await prisma.user.update({
+        data: {
+          isActive: true,
+          isEmailVerified: true,
+          otp: null,
+          otpExpiry: null,
+        },
+        include: { membership: true },
+        where: { id: user.id },
+      });
+
+      const now = new Date();
+
+      const sessionUser: SessionUser = {
+        email: verifiedUser.email,
+        id: verifiedUser.id,
+        isActive: verifiedUser.isActive,
+        isEmailVerified: verifiedUser.isEmailVerified,
+        isOauthUser: verifiedUser.isOauthUser,
+        lastLogin: now,
+        membership: verifiedUser.membership,
+        name: verifiedUser.name,
+        phoneNumber: verifiedUser.phoneNumber,
+        role: verifiedUser.role,
+      };
+
+      // Auto-login after verification
+      req.logIn(sessionUser, (err) => {
+        if (err) {
+          return res.status(200).json({
+            message:
+              "Email verified successfully, but auto-login failed. Please login.",
+            success: true,
+          });
+        }
+
+        return res.status(200).json({
+          message: "Email verified and logged in successfully",
+          success: true,
+          user: sessionUser,
+        });
+      });
+    } catch (error) {
+      console.error("OTP verification error:", error);
+      res.status(500).json({
+        error: process.env.NODE_ENV === "development" ? error : undefined,
+        message: "OTP verification failed",
+        success: false,
+      });
+    }
+  }
+);
+
+// POST /api/auth/resend-otp
+router.post("/resend-otp", async (req, res) => {
+  try {
+    const { email } = req.body as { email: string };
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+        success: false,
+      });
+    }
+
+    // Find user with matching email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        success: false,
+      });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        message: "Email already verified. Please login.",
+        success: false,
+      });
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
+
+    // Update user with new OTP
+    await prisma.user.update({
+      data: {
+        otp,
+        otpExpiry,
+      },
+      where: { id: user.id },
+    });
+
+    // Send OTP email
+    await sendOTPEmail(email, otp, user.name);
+
+    res.status(200).json({
+      message: "New OTP has been sent to your email.",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Resend OTP error:", error);
+    res.status(500).json({
+      error: process.env.NODE_ENV === "development" ? error : undefined,
+      message: "Failed to resend OTP",
       success: false,
     });
   }

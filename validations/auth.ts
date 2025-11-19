@@ -31,6 +31,14 @@ export const SetPasswordSchema = z.object({
   password: passwordReq,
 });
 
+export const VerifyOTPSchema = z.object({
+  email: email,
+  otp: z
+    .string()
+    .length(6, "OTP must be 6 digits")
+    .regex(/^\d+$/, "OTP must contain only numbers"),
+});
+
 // ============================
 // EXPORT TYPES
 // ============================
@@ -38,3 +46,4 @@ export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 export type Login = z.infer<typeof LoginSchema>;
 export type Register = z.infer<typeof RegisterSchema>;
 export type SetPassword = z.infer<typeof SetPasswordSchema>;
+export type VerifyOTP = z.infer<typeof VerifyOTPSchema>;
