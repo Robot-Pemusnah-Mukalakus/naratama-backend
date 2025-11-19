@@ -9,14 +9,15 @@ import {
 
 const router = express.Router();
 
-// Membership payment routes
+// POST /api/payment/membership/create
 router.post("/membership/create", createTransactionMembership);
+// POST /api/payment/membership/finish
 router.post("/membership/finish", finishTransactionMembership);
 
-// Room booking payment routes
+// POST /api/payment/room/finish
 router.post("/room/finish", finishTransactionRoomBooking);
 
-// Book loan payment routes
+// POST /api/payment/book/finish
 router.post("/book/finish", finishTransactionBookLoan);
 
 
